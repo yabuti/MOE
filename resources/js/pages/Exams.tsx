@@ -180,6 +180,9 @@ export default function Exams() {
                                     <td className="px-5 py-3 text-sm text-gray-600">{exam.questions_count ?? 0}</td>
                                     <td className="whitespace-nowrap px-5 py-3">
                                         <div className="flex items-center gap-1">
+                                            <Button variant="ghost" className="px-2 py-1 text-brand-600 hover:bg-brand-50" onClick={() => navigate(`/exams/${exam.id}/questions`)}>
+                                                Questions
+                                            </Button>
                                             {canEdit && (
                                                 <Button
                                                     variant="ghost" className="px-2 py-1"

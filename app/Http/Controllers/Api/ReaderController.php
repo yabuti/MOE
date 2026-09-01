@@ -199,7 +199,7 @@ class ReaderController extends Controller
     {
         $user = $request->user();
         $validated = $request->validate([
-            'answers' => ['required', 'array'],
+            'answers' => ['sometimes', 'array'],
         ]);
 
         $exam->load('questions');

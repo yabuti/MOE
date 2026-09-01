@@ -232,18 +232,28 @@ export default function Questions() {
                             <p className="mb-1 text-sm font-medium text-gray-700">Options</p>
                             <div className="space-y-2">
                                 {form.options.map((opt, i) => (
-                                    <Input
-                                        key={i}
-                                        value={opt}
-                                        onChange={(e) => {
-                                            const next = [...form.options];
-                                            next[i] = e.target.value;
-                                            setForm({ ...form, options: next });
-                                        }}
-                                        placeholder={`Option ${i + 1}`}
-                                    />
+                                    <div key={i} className="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            name="correct-option"
+                                            checked={form.correctAnswer.trim() !== '' && form.correctAnswer.trim() === opt.trim()}
+                                            onChange={() => setForm({ ...form, correctAnswer: opt })}
+                                            title="Mark as correct answer"
+                                            className="h-4 w-4 shrink-0 cursor-pointer text-emerald-600 focus:ring-emerald-500"
+                                        />
+                                        <Input
+                                            value={opt}
+                                            onChange={(e) => {
+                                                const next = [...form.options];
+                                                next[i] = e.target.value;
+                                                setForm({ ...form, options: next });
+                                            }}
+                                            placeholder={`Option ${i + 1}`}
+                                        />
+                                    </div>
                                 ))}
                             </div>
+                            <p className="mt-1 text-xs text-gray-400">Select the radio button next to the correct option.</p>
                         </div>
                     )}
 

@@ -87,8 +87,5 @@
     opacity: 1 !important;
 }
 
-/* Hide progress bar completely */
-.Toastify__progress-bar {
-    display: none !important;
-}
+
 

@@ -1,4 +1,3 @@
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import 'react-toastify/dist/ReactToastify.css';
 import App from './app';
@@ -9,8 +8,4 @@ if (!container) {
     throw new Error('Root element #root was not found in the DOM.');
 }
 
-createRoot(container).render(
-    <StrictMode>
-        <App />
-    </StrictMode>,
-);
+createRoot(container).render(<App />);

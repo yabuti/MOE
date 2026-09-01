@@ -22,9 +22,6 @@ import {
 
 const navigation = [
     { name: 'Dashboard', to: '/', icon: HomeIcon, permission: 'view dashboard' },
-    { name: 'Library', to: '/library', icon: BookOpenIcon, permission: 'view catalog' },
-    { name: 'Users', to: '/users', icon: UsersIcon, permission: 'view users' },
-    { name: 'Roles', to: '/roles', icon: ShieldCheckIcon, permission: 'view roles' },
     { name: 'Schools', to: '/schools', icon: BuildingOfficeIcon, permission: 'view schools' },
     { name: 'Node Types', to: '/node-types', icon: TagIcon, permission: 'view node types' },
     { name: 'Catalog', to: '/catalog', icon: FolderIcon, permission: 'view catalog' },
@@ -32,6 +29,9 @@ const navigation = [
     { name: 'Content', to: '/content', icon: BookOpenIcon, permission: 'view content' },
     { name: 'Media', to: '/media', icon: PhotoIcon, permission: 'upload media' },
     { name: 'Exams', to: '/exams', icon: AcademicCapIcon, permission: 'view exams' },
+    { name: 'Library', to: '/library', icon: BookOpenIcon, permission: 'view catalog' },
+    { name: 'Users', to: '/users', icon: UsersIcon, permission: 'view users' },
+    { name: 'Roles', to: '/roles', icon: ShieldCheckIcon, permission: 'view roles' },
     { name: 'Audit Logs', to: '/audit-logs', icon: InboxIcon, permission: 'view audit logs' },
 ];
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
-import { Button, Card, CardBody } from '../components/ui';
+import { Button, Card, CardBody, Modal } from '../components/ui';
 import {
     ArrowLeftIcon,
     Bars3BottomLeftIcon,
