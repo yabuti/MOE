@@ -4,14 +4,14 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
 
 const baseButton =
-    'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+    'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/20 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shadow-xs';
 
 const buttonVariants: Record<ButtonVariant, string> = {
-    primary: 'bg-brand-600 text-white hover:bg-brand-700',
-    secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
+    primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-brand-500/20',
+    secondary: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300',
     danger: 'bg-red-600 text-white hover:bg-red-700',
-    ghost: 'text-gray-600 hover:bg-gray-100',
-    success: 'bg-green-600 text-white hover:bg-green-700',
+    ghost: 'text-gray-600 hover:bg-gray-100/80',
+    success: 'bg-emerald-600 text-white hover:bg-emerald-700',
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -29,7 +29,7 @@ export function Button({ variant = 'primary', loading, className = '', children,
 }
 
 const inputBase =
-    'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 disabled:bg-gray-50';
+    'w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:bg-white focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed shadow-xs';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;

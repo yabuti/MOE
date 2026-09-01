@@ -15,6 +15,8 @@ import Exams from './pages/Exams';
 import Questions from './pages/Questions';
 import AuditLogs from './pages/AuditLogs';
 import BookImport from './pages/BookImport';
+import Library from './pages/Library';
+import BookReader from './pages/BookReader';
 
 export default function App() {
     return (
@@ -43,6 +45,8 @@ export default function App() {
                         <Route path="exams" element={<Exams />} />
                         <Route path="exams/:examId/questions" element={<Questions />} />
                         <Route path="audit-logs" element={<AuditLogs />} />
+                        <Route path="library" element={<Library />} />
+                        <Route path="read/:bookId" element={<BookReader />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

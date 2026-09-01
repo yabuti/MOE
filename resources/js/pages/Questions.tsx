@@ -113,6 +113,28 @@ export default function Questions() {
         }
     };
 
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [importText, setImportText] = useState('');
+    const [importing, setImporting] = useState(false);
+
+    const handleBulkImport = async () => {
+        if (!examId || !importText.trim()) return;
+        setImporting(true);
+        try {
+            const { data } = await api.post<{ message: string; count: number }>(`/exams/${examId}/bulk-import`, {
+                raw_text: importText,
+            });
+            toast.success(data.message);
+            setImportModalOpen(false);
+            setImportText('');
+            void load();
+        } catch (err) {
+            toast.error(getErrorMessage(err));
+        } finally {
+            setImporting(false);
+        }
+    };
+
     const canManage = hasPermission('manage questions');
 
     return (
@@ -126,9 +148,14 @@ export default function Questions() {
                             <ArrowLeftIcon className="h-5 w-5" /> Exams
                         </Button>
                         {canManage && (
-                            <Button onClick={openCreate}>
-                                <PlusIcon className="h-5 w-5" /> New Question
-                            </Button>
+                            <>
+                                <Button variant="secondary" onClick={() => setImportModalOpen(true)}>
+                                    Import Text/PDF
+                                </Button>
+                                <Button onClick={openCreate}>
+                                    <PlusIcon className="h-5 w-5" /> New Question
+                                </Button>
+                            </>
                         )}
                     </>
                 }
@@ -232,6 +259,42 @@ export default function Questions() {
                         <Input label="Correct answer" value={form.correctAnswer} onChange={(e) => setForm({ ...form, correctAnswer: e.target.value })} />
                     )}
                 </form>
+            </Modal>
+
+            {/* Bulk Import Modal */}
+            <Modal
+                open={importModalOpen}
+                onClose={() => setImportModalOpen(false)}
+                title="Bulk Import Questions (PDF/Word)"
+                size="lg"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setImportModalOpen(false)}>Cancel</Button>
+                        <Button variant="primary" loading={importing} onClick={handleBulkImport}>Import</Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900 border border-blue-200">
+                        <p className="font-bold mb-2">Instructions:</p>
+                        <p>Copy and paste your exam questions from Word or PDF directly here. Use the format:</p>
+                        <pre className="mt-2 bg-white/60 p-2 rounded text-xs border border-blue-100">
+1. What is the capital of Ethiopia?
+A) Gondar
+B) Addis Ababa
+C) Bahir Dar
+D) Hawassa
+Answer: B
+                        </pre>
+                    </div>
+                    <Textarea
+                        label="Paste Exam Text"
+                        value={importText}
+                        onChange={(e) => setImportText(e.target.value)}
+                        rows={12}
+                        placeholder="Paste your numbered questions here..."
+                    />
+                </div>
             </Modal>
 
             <ConfirmDialog

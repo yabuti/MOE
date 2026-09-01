@@ -70,4 +70,89 @@ class QuestionController extends Controller
             'message' => 'Question deleted successfully.',
         ]);
     }
+
+    public function bulkImport(Request $request, Exam $exam): JsonResponse
+    {
+        $validated = $request->validate([
+            'raw_text' => ['required', 'string'],
+        ]);
+
+        $text = $validated['raw_text'];
+        $questionsCreated = 0;
+
+        // Basic parser for format:
+        // 1. Question text here?
+        // A) Option 1
+        // B) Option 2
+        // C) Option 3
+        // D) Option 4
+        // Answer: A
+
+        // Split by numbered question pattern (e.g. "1. ", "2. ", "1) ", "2) ")
+        $blocks = preg_split('/^\s*\d+[\.\)]\s*/m', $text, -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($blocks as $block) {
+            $block = trim($block);
+            if (empty($block)) continue;
+
+            // Extract Answer
+            $answerStr = '';
+            if (preg_match('/Answer:\s*([A-Za-z])/i', $block, $match)) {
+                $answerStr = strtoupper(trim($match[1]));
+                $block = preg_replace('/Answer:\s*[A-Za-z].*/i', '', $block);
+            } elseif (preg_match('/Correct:\s*([A-Za-z])/i', $block, $match)) {
+                $answerStr = strtoupper(trim($match[1]));
+                $block = preg_replace('/Correct:\s*[A-Za-z].*/i', '', $block);
+            }
+
+            // Extract Options
+            $options = [];
+            $lines = explode("\n", $block);
+            $questionTextLines = [];
+            
+            $optionRegex = '/^([A-E])[\.\)]\s*(.+)/i';
+            
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+                
+                if (preg_match($optionRegex, $line, $optMatch)) {
+                    $letter = strtoupper($optMatch[1]);
+                    $optText = trim($optMatch[2]);
+                    $options[$letter] = $optText;
+                } else {
+                    // If we haven't found options yet, it's part of the question
+                    if (empty($options)) {
+                        $questionTextLines[] = $line;
+                    }
+                }
+            }
+            
+            $questionText = trim(implode("\n", $questionTextLines));
+            
+            if (!empty($questionText) && count($options) >= 2) {
+                // Determine correct answer text
+                $correctAnswerText = $options[$answerStr] ?? null;
+                if (!$correctAnswerText && !empty($options)) {
+                    // Default to first option if no valid answer found
+                    $correctAnswerText = reset($options);
+                }
+                
+                $exam->questions()->create([
+                    'question' => $questionText,
+                    'type' => 'multiple_choice',
+                    'options' => array_values($options),
+                    'correct_answer' => $correctAnswerText,
+                    'points' => 1,
+                    'position' => $exam->questions()->max('position') + 1,
+                ]);
+                $questionsCreated++;
+            }
+        }
+
+        return response()->json([
+            'message' => "Successfully imported {$questionsCreated} questions.",
+            'count' => $questionsCreated
+        ]);
+    }
 }

@@ -11,7 +11,7 @@ class ExamController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $exams = Exam::with('catalogNode:id,name')
+        $exams = Exam::with(['catalogNode.parent.parent.parent', 'catalogNode.catalogNodeType'])
             ->withCount('questions')
             ->latest()
             ->paginate(15);

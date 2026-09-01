@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../api/client';
 import { Button, Input } from '../components/ui';
@@ -11,20 +12,19 @@ export default function Login() {
     const location = useLocation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
         try {
             await login(email, password);
+            toast.success('Signed in successfully');
             navigate(from, { replace: true });
         } catch (err) {
-            setError(getErrorMessage(err));
+            toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -32,20 +32,16 @@ export default function Login() {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 to-cream-100 px-4">
+            <ToastContainer position="top-right" autoClose={2500} hideProgressBar newestOnTop closeOnClick pauseOnHover={false} draggable />
             <div className="w-full max-w-md">
                 <div className="mb-8 text-center">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg">
-                        <Squares2X2Icon className="h-7 w-7" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-gray-900">MOE Admin Panel</h1>
-                    <p className="mt-1 text-sm text-gray-500">Sign in to manage the e-content platform</p>
+                    <img src="/Logo.png" alt="EduPlatform Logo" className="mx-auto mb-6 h-16 w-auto object-contain drop-shadow-sm" />
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Sign in to EduPlatform</h1>
+                    <p className="mt-2 text-sm text-gray-600">Please enter your credentials to continue</p>
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
-                            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-                        )}
                         <Input
                             label="Email"
                             name="email"

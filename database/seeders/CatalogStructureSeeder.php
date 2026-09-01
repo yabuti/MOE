@@ -13,82 +13,68 @@ class CatalogStructureSeeder extends Seeder
 
     public function run(): void
     {
+        // Reset any existing structure so the tree reflects the new design.
+        CatalogNode::query()->delete();
+        CatalogNodeType::query()->delete();
+
         $this->createDefaultNodeTypes();
         $this->createSampleHierarchy();
     }
 
     private function createDefaultNodeTypes(): void
     {
-        // Configurable defaults. Admins can add/rename/remove node types.
+        // Category is the top level. Grade sits under a category, books sit
+        // under a grade, and chapters sit directly under a book (deepest).
         $types = [
-            ['name' => 'Program', 'slug' => 'program', 'label' => 'Academic Program', 'parent_type_id' => null, 'sort_order' => 1],
-            ['name' => 'Level', 'slug' => 'level', 'label' => 'Grade Level', 'parent_type_id' => null, 'sort_order' => 2],
-            ['name' => 'Course', 'slug' => 'course', 'label' => 'Course / Subject', 'parent_type_id' => null, 'sort_order' => 3],
-            ['name' => 'Book', 'slug' => 'book', 'label' => 'Textbook', 'parent_type_id' => null, 'sort_order' => 4],
-            ['name' => 'Chapter', 'slug' => 'chapter', 'label' => 'Chapter', 'parent_type_id' => null, 'sort_order' => 5],
-            ['name' => 'Section', 'slug' => 'section', 'label' => 'Section', 'parent_type_id' => null, 'sort_order' => 6],
+            ['name' => 'Category', 'slug' => 'category', 'label' => 'Category', 'parent_type_id' => null, 'sort_order' => 1],
+            ['name' => 'Grade', 'slug' => 'grade', 'label' => 'Grade', 'parent_type_id' => null, 'sort_order' => 2],
+            ['name' => 'Book', 'slug' => 'book', 'label' => 'Textbook', 'parent_type_id' => null, 'sort_order' => 3],
+            ['name' => 'Chapter', 'slug' => 'chapter', 'label' => 'Chapter', 'parent_type_id' => null, 'sort_order' => 4],
         ];
 
         $created = [];
         foreach ($types as $t) {
-            $created[$t['slug']] = CatalogNodeType::firstOrCreate(['slug' => $t['slug']], $t);
+            $created[$t['slug']] = CatalogNodeType::create($t);
         }
 
-        // Wire the default parent chain: program -> level -> course -> book -> chapter -> section
-        $chain = ['section' => 'chapter', 'chapter' => 'book', 'book' => 'course', 'course' => 'level', 'level' => 'program'];
-        foreach ($chain as $slug => $parentSlug) {
-            $created[$slug]->update([
-                'parent_type_id' => $created[$parentSlug]->id,
-                'label' => $created[$slug]->label,
-            ]);
-        }
+        // Wire the default parent chain: category -> grade -> book -> chapter
+        $created['grade']->update(['parent_type_id' => $created['category']->id]);
+        $created['book']->update(['parent_type_id' => $created['grade']->id]);
+        $created['chapter']->update(['parent_type_id' => $created['book']->id]);
     }
 
     private function createSampleHierarchy(): void
     {
-        if (CatalogNode::count() > 0) {
-            return;
-        }
-
         $typeOf = fn (string $slug) => CatalogNodeType::where('slug', $slug)->first()->id;
 
-        $program = CatalogNode::create([
-            'catalog_node_type_id' => $typeOf('program'),
-            'name' => 'General Education',
-            'slug' => 'general-education',
-            'description' => 'Ethiopian general education program',
+        $mathCat = CatalogNode::create([
+            'catalog_node_type_id' => $typeOf('category'),
+            'name' => 'Mathematics',
+            'slug' => 'mathematics',
+            'description' => 'Mathematics books',
             'status' => 'published',
             'sort_order' => 1,
         ]);
 
         $grade1 = CatalogNode::create([
-            'catalog_node_type_id' => $typeOf('level'),
-            'parent_id' => $program->id,
+            'catalog_node_type_id' => $typeOf('grade'),
+            'parent_id' => $mathCat->id,
             'name' => 'Grade 1',
             'slug' => 'grade-1',
             'status' => 'published',
             'sort_order' => 1,
         ]);
 
-        $math = CatalogNode::create([
-            'catalog_node_type_id' => $typeOf('course'),
-            'parent_id' => $grade1->id,
-            'name' => 'Mathematics',
-            'slug' => 'mathematics',
-            'status' => 'published',
-            'sort_order' => 1,
-        ]);
-
         $book = CatalogNode::create([
             'catalog_node_type_id' => $typeOf('book'),
-            'parent_id' => $math->id,
+            'parent_id' => $grade1->id,
             'name' => 'Mathematics Grade 1 Student Book',
             'slug' => 'maths-grade-1-book',
             'status' => 'published',
             'sort_order' => 1,
         ]);
 
-        $chapter1 = CatalogNode::create([
+        CatalogNode::create([
             'catalog_node_type_id' => $typeOf('chapter'),
             'parent_id' => $book->id,
             'name' => 'Numbers 1 to 10',
@@ -98,19 +84,10 @@ class CatalogStructureSeeder extends Seeder
         ]);
 
         CatalogNode::create([
-            'catalog_node_type_id' => $typeOf('section'),
-            'parent_id' => $chapter1->id,
-            'name' => 'Understanding 1 to 5',
-            'slug' => 'understanding-1-to-5',
-            'status' => 'published',
-            'sort_order' => 1,
-        ]);
-
-        CatalogNode::create([
-            'catalog_node_type_id' => $typeOf('section'),
-            'parent_id' => $chapter1->id,
-            'name' => 'Counting Objects',
-            'slug' => 'counting-objects',
+            'catalog_node_type_id' => $typeOf('chapter'),
+            'parent_id' => $book->id,
+            'name' => 'Geometry',
+            'slug' => 'geometry',
             'status' => 'published',
             'sort_order' => 2,
         ]);

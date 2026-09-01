@@ -22,6 +22,7 @@ import {
 
 const navigation = [
     { name: 'Dashboard', to: '/', icon: HomeIcon, permission: 'view dashboard' },
+    { name: 'Library', to: '/library', icon: BookOpenIcon, permission: 'view catalog' },
     { name: 'Users', to: '/users', icon: UsersIcon, permission: 'view users' },
     { name: 'Roles', to: '/roles', icon: ShieldCheckIcon, permission: 'view roles' },
     { name: 'Schools', to: '/schools', icon: BuildingOfficeIcon, permission: 'view schools' },
@@ -54,14 +55,9 @@ function SidebarLink({ item, onNavigate }: { item: (typeof navigation)[number]; 
 
 function Brand() {
     return (
-        <div className="flex items-center gap-3 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-                <Squares2X2Icon className="h-5 w-5" />
-            </div>
-            <div>
-                <p className="text-sm font-bold leading-tight text-gray-900">MOE Admin</p>
-                <p className="text-xs text-gray-500">Ministry of Education</p>
-            </div>
+        <div className="flex items-center gap-3">
+            <img src="/Logo.png" alt="System Logo" className="h-8 w-auto object-contain" />
+            <span className="text-xl font-bold text-gray-900 tracking-tight">EduPlatform</span>
         </div>
     );
 }
@@ -80,24 +76,33 @@ export default function Layout() {
 
     return (
         <div className="min-h-screen bg-cream-50">
-            <ToastContainer position="top-right" autoClose={3000} />
+            <ToastContainer position="top-right" autoClose={2500} hideProgressBar newestOnTop closeOnClick pauseOnHover={false} draggable />
 
             {/* Mobile header */}
             <div className="sticky top-0 z-30 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
-                <Brand />
-                <button onClick={() => setSidebarOpen(true)} className="rounded-md p-2 text-gray-600 hover:bg-gray-100">
+                <div className="flex items-center gap-2">
+                    <img src="/Logo.png" alt="System Logo" className="h-8 w-auto object-contain" />
+                    <span className="font-bold text-gray-900">EduPlatform</span>
+                </div>
+                <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-600"
+                >
                     <Bars3Icon className="h-6 w-6" />
                 </button>
             </div>
 
-            {/* Mobile sidebar */}
+            {/* Sidebar / Drawer */}
             {sidebarOpen && (
                 <div className="fixed inset-0 z-40 lg:hidden">
-                    <div className="fixed inset-0 bg-gray-900/50" onClick={() => setSidebarOpen(false)} />
+                    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
                     <div className="fixed inset-y-0 left-0 flex w-72 flex-col bg-white shadow-xl">
-                        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-                            <Brand />
-                            <button onClick={() => setSidebarOpen(false)} className="rounded-md p-2 text-gray-500 hover:bg-gray-100">
+                        <div className="flex h-16 items-center justify-between border-b border-gray-100 px-6">
+                            <div className="flex items-center gap-2">
+                                <img src="/Logo.png" alt="System Logo" className="h-8 w-auto object-contain" />
+                                <span className="text-lg font-bold text-gray-900">EduPlatform</span>
+                            </div>
+                            <button onClick={() => setSidebarOpen(false)} className="rounded-md p-2 text-gray-400 hover:bg-gray-100">
                                 <XMarkIcon className="h-5 w-5" />
                             </button>
                         </div>

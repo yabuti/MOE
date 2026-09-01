@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Admin\RoleController;
 use App\Http\Controllers\Api\Admin\SchoolController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ReaderController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -89,10 +90,16 @@ Route::prefix('v1')->group(function () {
 
         // Questions
         Route::post('/exams/{exam}/questions', [QuestionController::class, 'store'])->middleware('permission:manage questions');
+        Route::post('/exams/{exam}/bulk-import', [QuestionController::class, 'bulkImport'])->middleware('permission:manage questions');
         Route::put('/questions/{question}', [QuestionController::class, 'update'])->middleware('permission:manage questions');
         Route::delete('/questions/{question}', [QuestionController::class, 'destroy'])->middleware('permission:manage questions');
 
         // Audit logs
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('permission:view audit logs');
+
+        // Student reader & exam submission (any authenticated user)
+        Route::get('/reader/library', [ReaderController::class, 'library']);
+        Route::get('/reader/books/{book}', [ReaderController::class, 'show']);
+        Route::post('/reader/exams/{exam}/submit', [ReaderController::class, 'submitExam']);
     });
 });

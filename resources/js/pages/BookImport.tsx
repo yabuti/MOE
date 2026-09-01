@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
-import { Badge, Button, Card, CardBody, CardHeader, EmptyState, PageHeader, Select } from '../components/ui';
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState, Input, PageHeader, Select } from '../components/ui';
 import { ArrowPathIcon, DocumentArrowUpIcon, FolderIcon } from '@heroicons/react/24/outline';
 
 interface TreeNode {
@@ -16,7 +16,12 @@ interface TreeNode {
 interface DetectedSection {
     heading: string;
     title: string;
-    sections: string[];
+    body_snippet?: string;
+}
+
+interface Option {
+    id: number;
+    name: string;
 }
 
 export default function BookImport() {
@@ -24,12 +29,12 @@ export default function BookImport() {
     const [loadingTree, setLoadingTree] = useState(true);
 
     const [file, setFile] = useState<File | null>(null);
-    const [bookId, setBookId] = useState('');
-    const [titlePrefill, setTitlePrefill] = useState('');
+    const [bookTitle, setBookTitle] = useState('');
+    const [categoryId, setCategoryId] = useState('');
+    const [gradeId, setGradeId] = useState('');
 
     const [analyzing, setAnalyzing] = useState(false);
     const [preview, setPreview] = useState<{ tree: DetectedSection[]; text_preview?: string } | null>(null);
-    const [error, setError] = useState<string | null>(null);
 
     const [importing, setImporting] = useState(false);
 
@@ -47,20 +52,17 @@ export default function BookImport() {
 
     useEffect(() => { void loadTree(); }, [loadTree]);
 
-    const bookNodes = useMemo(() => {
-        const out: TreeNode[] = [];
-        const walk = (nodes: TreeNode[], parentBookId: number | null) => {
-            nodes.forEach((n) => {
-                const isBook = n.type === 'book';
-                if (parentBookId !== null && isBook) {
-                    out.push(n);
-                }
-                walk(n.children, isBook ? n.id : parentBookId);
-            });
-        };
-        walk(tree, null);
-        return out;
-    }, [tree]);
+    const categories = useMemo<Option[]>(() =>
+        tree.filter((n) => n.type === 'category').map((n) => ({ id: n.id, name: n.name })),
+        [tree],
+    );
+
+    const grades = useMemo<Option[]>(() => {
+        const cat = tree.find((n) => n.id === Number(categoryId));
+        return (cat?.children ?? [])
+            .filter((n) => n.type === 'grade')
+            .map((n) => ({ id: n.id, name: n.name }));
+    }, [tree, categoryId]);
 
     const handleFile = (f: File | null) => {
         setFile(f);
@@ -68,7 +70,7 @@ export default function BookImport() {
         setError(null);
         if (f) {
             const base = f.name.replace(/\.pdf$/i, '').replace(/[_\-]+/g, ' ').trim();
-            setTitlePrefill(base);
+            setBookTitle(base);
         }
     };
 
@@ -76,56 +78,57 @@ export default function BookImport() {
         e.preventDefault();
         if (!file) return;
         setAnalyzing(true);
-        setError(null);
         try {
             const formData = new FormData();
             formData.append('file', file);
             const { data } = await api.post<{ tree: DetectedSection[]; text_preview?: string }>('/books/import/preview', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+                headers: { 'Content-Type': undefined },
             });
             setPreview(data);
             if (!data.tree || data.tree.length === 0) {
-                setError('No chapter or section headings were detected in this PDF.');
+                toast.error('No chapter headings were detected in this PDF.');
             }
         } catch (err) {
-            setError(getErrorMessage(err));
+            toast.error(getErrorMessage(err));
         } finally {
             setAnalyzing(false);
         }
     };
 
     const runImport = async () => {
-        if (!file || !bookId) return;
+        if (!file || !categoryId || !gradeId || !bookTitle.trim()) return;
         setImporting(true);
-        setError(null);
         try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('book_id', bookId);
-            if (titlePrefill) formData.append('book_title', titlePrefill);
+            formData.append('category_id', categoryId);
+            formData.append('grade_id', gradeId);
+            formData.append('book_title', bookTitle.trim());
             const { data } = await api.post<{ message: string }>('/books/import', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+                headers: { 'Content-Type': undefined },
             });
             toast.success(data.message);
             setPreview(null);
             setFile(null);
-            setTitlePrefill('');
-            setBookId('');
+            setBookTitle('');
+            setCategoryId('');
+            setGradeId('');
             void loadTree();
         } catch (err) {
-            setError(getErrorMessage(err));
+            toast.error(getErrorMessage(err));
         } finally {
             setImporting(false);
         }
     };
 
     const chapterCount = preview?.tree?.length ?? 0;
+    const canImport = !!file && !!categoryId && !!gradeId && !!bookTitle.trim();
 
     return (
         <div>
             <PageHeader
                 title="Import Book"
-                description="Upload a book PDF — chapters and sections are detected automatically (Amharic & English) and built into the catalog tree."
+                description="Upload a book PDF — pick the category and grade, and the book plus its chapters are created automatically (Amharic & English headings)."
             />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -147,6 +150,13 @@ export default function BookImport() {
                                         onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
                                     />
                                 </label>
+                                <Input
+                                    label="Book title"
+                                    value={bookTitle}
+                                    onChange={(e) => setBookTitle(e.target.value)}
+                                    placeholder="e.g. Mathematics Grade 1 Student Book"
+                                    required
+                                />
                                 <Button type="submit" className="w-full" loading={analyzing} disabled={!file}>
                                     {analyzing ? 'Analyzing…' : 'Run Analysis'}
                                 </Button>
@@ -158,28 +168,15 @@ export default function BookImport() {
                 <div className="lg:col-span-3">
                     <Card>
                         <CardHeader
-                            title="2 · Review & Import"
-                            subtitle="Review what was detected, then pick the parent book node"
-                            actions={
-                                !preview && bookNodes.length > 0 ? (
-                                    <Button variant="ghost" onClick={() => void loadTree()}>
-                                        <ArrowPathIcon className="h-4 w-4" /> Refresh
-                                    </Button>
-                                ) : undefined
-                            }
+                            title="2 · Place & Import"
+                            subtitle="Choose where the book belongs, review the detected chapters"
                         />
                         <CardBody>
-                            {error && (
-                                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                                    {error}
-                                </div>
-                            )}
-
-                            {!preview ? (
-                                bookNodes.length === 0 ? (
+                            <div className="space-y-4">
+                                {categories.length === 0 ? (
                                     <EmptyState
-                                        title="No books available"
-                                        description="Create a Book node under a course in the Catalog first, then import a PDF into it."
+                                        title="No categories available"
+                                        description="Create a Category → Grade structure in the Catalog first, then import a book into it."
                                         action={
                                             <Button variant="secondary" loading={loadingTree} onClick={() => void loadTree()}>
                                                 <ArrowPathIcon className="h-4 w-4" /> Refresh
@@ -187,74 +184,65 @@ export default function BookImport() {
                                         }
                                     />
                                 ) : (
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <Select label="Category" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setGradeId(''); }}>
+                                            <option value="">Select a category…</option>
+                                            {categories.map((c) => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </Select>
+                                        <Select label="Grade" value={gradeId} onChange={(e) => setGradeId(e.target.value)} disabled={!categoryId}>
+                                            <option value="">Select a grade…</option>
+                                            {grades.map((g) => (
+                                                <option key={g.id} value={g.id}>{g.name}</option>
+                                            ))}
+                                        </Select>
+                                    </div>
+                                )}
+
+                                {!preview ? (
+                                    <p className="text-sm text-gray-500">
+                                        Upload a PDF on the left, then run the analysis to see the detected chapters before importing.
+                                    </p>
+                                ) : (
                                     <div className="space-y-4">
-                                        <p className="text-sm text-gray-500">
-                                            Run the analysis above to see the detected structure. Then choose the book this content belongs to.
-                                        </p>
-                                        <Select label="Target book" value={bookId} onChange={(e) => setBookId(e.target.value)}>
-                                            <option value="">Select a book…</option>
-                                            {bookNodes.map((b) => (
-                                                <option key={b.id} value={b.id}>{b.name}</option>
-                                            ))}
-                                        </Select>
-                                    </div>
-                                )
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <Badge variant="blue">{chapterCount} chapter(s) detected</Badge>
-                                        {bookNodes.length === 0 && <Badge variant="yellow">No book nodes</Badge>}
-                                    </div>
-
-                                    {chapterCount > 0 && bookNodes.length > 0 && (
-                                        <Select label="Target book" value={bookId} onChange={(e) => setBookId(e.target.value)}>
-                                            <option value="">Select a book…</option>
-                                            {bookNodes.map((b) => (
-                                                <option key={b.id} value={b.id}>{b.name}</option>
-                                            ))}
-                                        </Select>
-                                    )}
-
-                                    <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-200">
-                                        {preview.tree.map((ch, i) => (
-                                            <div key={i} className="border-b border-gray-100 px-4 py-3 last:border-0">
-                                                <div className="flex items-center gap-2">
-                                                    <FolderIcon className="h-4 w-4 shrink-0 text-brand-500" />
-                                                    <span className="font-medium text-gray-900">{ch.title}</span>
-                                                    <Badge variant="blue">chapter</Badge>
-                                                </div>
-                                                {ch.sections.length > 0 && (
-                                                    <ul className="mt-2 space-y-1 pl-6">
-                                                        {ch.sections.map((s, j) => (
-                                                            <li key={j} className="flex items-center gap-2 text-sm text-gray-600">
-                                                                <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-                                                                {s}
-                                                                <Badge variant="gray">section</Badge>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {preview.text_preview && (
-                                        <div>
-                                            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">Extracted text preview</p>
-                                            <p className="rounded-lg bg-gray-50 px-4 py-3 font-mono text-xs text-gray-600">{preview.text_preview}</p>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <Badge variant="blue">{chapterCount} chapter(s) detected</Badge>
                                         </div>
-                                    )}
 
-                                    <div className="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
-                                        <Button variant="secondary" onClick={() => { setPreview(null); setError(null); }}>
-                                            Back
-                                        </Button>
-                                        <Button variant="success" loading={importing} disabled={!bookId || !file} onClick={() => void runImport()}>
-                                            {importing ? 'Importing…' : 'Import Book'}
-                                        </Button>
+                                        <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-200 divide-y divide-gray-100">
+                                            {preview.tree.map((ch, i) => (
+                                                <div key={i} className="px-4 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <FolderIcon className="h-4 w-4 shrink-0 text-brand-500" />
+                                                        <span className="font-medium text-gray-900">{ch.title}</span>
+                                                        <Badge variant="blue">chapter</Badge>
+                                                    </div>
+                                                    {ch.body_snippet && (
+                                                        <p className="mt-1 pl-6 text-xs text-gray-500 line-clamp-2">{ch.body_snippet}</p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {preview.text_preview && (
+                                            <div>
+                                                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">Extracted text preview</p>
+                                                <p className="rounded-lg bg-gray-50 px-4 py-3 font-mono text-xs text-gray-600">{preview.text_preview}</p>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
+                                            <Button variant="secondary" onClick={() => setPreview(null)}>
+                                                Back
+                                            </Button>
+                                            <Button variant="success" loading={importing} disabled={!canImport} onClick={() => void runImport()}>
+                                                {importing ? 'Importing…' : 'Import Book'}
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </CardBody>
                     </Card>
                 </div>

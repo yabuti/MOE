@@ -52,12 +52,39 @@ export default function Exams() {
         }
     }, []);
 
+    interface TreeOption {
+        id: number;
+        name: string;
+        path: string;
+        type: string | null;
+    }
+
+    const [flatOptions, setFlatOptions] = useState<TreeOption[]>([]);
+
     const loadNodes = useCallback(async () => {
         try {
-            const { data } = await api.get<{ nodes: CatalogNode[] }>('/catalog', { params: { per_page: 100, page: 1 } });
-            setNodes(data.nodes);
+            const { data } = await api.get<{ tree: any[] }>('/catalog/tree');
+            const options: TreeOption[] = [];
+
+            const flatten = (nodes: any[], ancestors: string[] = []) => {
+                nodes.forEach((n) => {
+                    const currentPath = [...ancestors, n.name];
+                    options.push({
+                        id: n.id,
+                        name: n.name,
+                        path: currentPath.join(' › '),
+                        type: n.type,
+                    });
+                    if (n.children && n.children.length > 0) {
+                        flatten(n.children, currentPath);
+                    }
+                });
+            };
+
+            flatten(data.tree ?? []);
+            setFlatOptions(options);
         } catch {
-            setNodes([]);
+            setFlatOptions([]);
         }
     }, []);
 
@@ -141,7 +168,12 @@ export default function Exams() {
                                             {exam.title}
                                         </button>
                                     </td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">{exam.catalogNode?.name ?? exam.catalog_node_id}</td>
+                                    <td className="px-5 py-3 text-sm text-gray-600">
+                                        <div className="font-medium text-gray-900">{exam.catalogNode?.name ?? exam.catalog_node_id}</div>
+                                        <div className="text-xs text-gray-400">
+                                            {flatOptions.find((o) => o.id === exam.catalog_node_id)?.path ?? 'Chapter Node'}
+                                        </div>
+                                    </td>
                                     <td className="px-5 py-3"><Badge variant={statusVariant(exam.status)}>{exam.status}</Badge></td>
                                     <td className="px-5 py-3 text-sm text-gray-600">{exam.pass_percentage ?? '—'}%</td>
                                     <td className="px-5 py-3 text-sm text-gray-600">{exam.duration_minutes ? `${exam.duration_minutes} min` : '—'}</td>
@@ -197,9 +229,22 @@ export default function Exams() {
             >
                 <form id="exam-form" onSubmit={handleSubmit} className="space-y-4">
                     <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-                    <Select label="Catalog node" value={form.catalog_node_id} onChange={(e) => setForm({ ...form, catalog_node_id: e.target.value })} required>
-                        <option value="">Select node…</option>
-                        {nodes.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
+                    <Select label="Assign to Chapter / Node" value={form.catalog_node_id} onChange={(e) => setForm({ ...form, catalog_node_id: e.target.value })} required>
+                        <option value="">Select a chapter or node…</option>
+                        <optgroup label="Chapters (Recommended)">
+                            {flatOptions.filter((o) => o.type === 'chapter').map((o) => (
+                                <option key={o.id} value={o.id}>
+                                    📖 {o.path}
+                                </option>
+                            ))}
+                        </optgroup>
+                        <optgroup label="Other Nodes (Books / Grades / Categories)">
+                            {flatOptions.filter((o) => o.type !== 'chapter').map((o) => (
+                                <option key={o.id} value={o.id}>
+                                    📁 {o.path}
+                                </option>
+                            ))}
+                        </optgroup>
                     </Select>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <Input label="Pass %" type="number" min={0} max={100} value={form.pass_percentage} onChange={(e) => setForm({ ...form, pass_percentage: Number(e.target.value) })} />

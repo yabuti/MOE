@@ -59,7 +59,11 @@ export default function Catalog() {
             const ids = new Set<number>();
             const collect = (nodes: TreeItem[]) => {
                 nodes.forEach((n) => {
-                    if (n.children.length > 0) ids.add(n.id);
+                    // Auto-expand categories and grades; keep books collapsed
+                    // so chapters don't clutter the catalog view
+                    if (n.children.length > 0 && (n.type === 'category' || n.type === 'grade')) {
+                        ids.add(n.id);
+                    }
                     collect(n.children);
                 });
             };
