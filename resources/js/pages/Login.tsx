@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../api/client';
 import { Button, Input } from '../components/ui';
-import { Squares2X2Icon } from '@heroicons/react/24/outline';
 
 export default function Login() {
     const { login } = useAuth();
@@ -34,9 +33,11 @@ export default function Login() {
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 to-cream-100 px-4">
             <div className="w-full max-w-md">
                 <div className="mb-8 text-center">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg">
-                        <Squares2X2Icon className="h-7 w-7" />
-                    </div>
+                    <img
+                        src="/assets/logo.png"
+                        alt="MOE Admin Panel"
+                        className="mx-auto mb-4 h-14 w-14 rounded-2xl object-contain"
+                    />
                     <h1 className="text-2xl font-bold text-gray-900">MOE Admin Panel</h1>
                     <p className="mt-1 text-sm text-gray-500">Sign in to manage the e-content platform</p>
                 </div>

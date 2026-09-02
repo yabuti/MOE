@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
@@ -26,9 +26,13 @@ class RoleController extends Controller
             'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $role = Role::create(['name' => $validated['name']]);
+        $role = Role::create([
+            'name' => $validated['name'],
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
 
         $role->syncPermissions($validated['permissions'] ?? []);
 
@@ -44,11 +48,10 @@ class RoleController extends Controller
             'name' => ['sometimes', 'string', 'max:255', 'unique:roles,name,' . $role->id],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        if (isset($validated['name'])) {
-            $role->update(['name' => $validated['name']]);
-        }
+        $role->update($request->only(['name', 'is_active']));
 
         if ($request->has('permissions')) {
             $role->syncPermissions($validated['permissions'] ?? []);
@@ -56,6 +59,16 @@ class RoleController extends Controller
 
         return response()->json([
             'message' => 'Role updated successfully.',
+            'role' => $role->load('permissions'),
+        ]);
+    }
+
+    public function toggle(Request $request, Role $role): JsonResponse
+    {
+        $role->update(['is_active' => !$role->is_active]);
+
+        return response()->json([
+            'message' => 'Role ' . ($role->is_active ? 'activated' : 'deactivated') . ' successfully.',
             'role' => $role->load('permissions'),
         ]);
     }

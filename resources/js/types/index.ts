@@ -13,6 +13,7 @@ export interface Role {
     id: number;
     name: string;
     guard_name?: string;
+    is_active?: boolean;
     permissions?: Permission[];
     pivot?: Record<string, unknown>;
 }

@@ -14,7 +14,6 @@ import {
     InboxIcon,
     PhotoIcon,
     ShieldCheckIcon,
-    Squares2X2Icon,
     TagIcon,
     UsersIcon,
     XMarkIcon,
@@ -55,9 +54,7 @@ function SidebarLink({ item, onNavigate }: { item: (typeof navigation)[number]; 
 function Brand() {
     return (
         <div className="flex items-center gap-3 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-                <Squares2X2Icon className="h-5 w-5" />
-            </div>
+            <img src="/assets/logo.png" alt="MOE Admin" className="h-9 w-9 rounded-lg object-contain" />
             <div>
                 <p className="text-sm font-bold leading-tight text-gray-900">MOE Admin</p>
                 <p className="text-xs text-gray-500">Ministry of Education</p>

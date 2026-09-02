@@ -39,6 +39,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/roles', [RoleController::class, 'index'])->middleware('permission:view roles');
         Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:create roles');
         Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:edit roles');
+        Route::patch('/roles/{role}/toggle', [RoleController::class, 'toggle'])->middleware('permission:edit roles');
         Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:delete roles');
         Route::get('/permissions', [RoleController::class, 'permissions'])->middleware('permission:view roles');
 
