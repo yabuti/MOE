@@ -566,6 +566,131 @@ function ChapterExamCard({
     );
 }
 
+function buildChapterText(chapter: Chapter): string {
+    const parts: string[] = [chapter.name];
+    for (const block of chapter.content_blocks) {
+        if (block.type === 'text' && block.content) {
+            parts.push(block.content);
+        }
+    }
+    return parts.join('. ');
+}
+
+function ChapterAudioPlayer({
+    chapters,
+    currentChapter,
+    onListen,
+}: {
+    chapters: Chapter[];
+    currentChapter: number;
+    onListen: (chapterId: number) => void;
+}) {
+    const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+    const [chapterId, setChapterId] = useState<number>(chapters[currentChapter]?.id ?? chapters[0]?.id ?? 0);
+    const [playingId, setPlayingId] = useState<number | null>(null);
+    const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+    const [voiceUri, setVoiceUri] = useState('');
+
+    useEffect(() => {
+        if (!supported) return;
+        const fill = () => setVoices(window.speechSynthesis.getVoices());
+        fill();
+        window.speechSynthesis.addEventListener('voiceschanged', fill);
+        return () => window.speechSynthesis.removeEventListener('voiceschanged', fill);
+    }, [supported]);
+
+    useEffect(() => {
+        const ch = chapters[currentChapter];
+        if (ch) setChapterId(ch.id);
+    }, [chapters, currentChapter]);
+
+    useEffect(() => {
+        return () => {
+            if (supported) window.speechSynthesis.cancel();
+        };
+    }, [supported]);
+
+    const stop = () => {
+        if (!supported) return;
+        window.speechSynthesis.cancel();
+        setPlayingId(null);
+    };
+
+    const play = () => {
+        if (!supported) {
+            toast.error('Audio is not supported in this browser.');
+            return;
+        }
+        stop();
+        const chapter = chapters.find((c) => c.id === chapterId);
+        if (!chapter) return;
+        const text = buildChapterText(chapter);
+        if (!text.trim()) {
+            toast.warning('This chapter has no readable text.');
+            return;
+        }
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = /[\u1200-\u137F]/.test(text) ? 'am-ET' : 'en-US';
+        if (voiceUri) {
+            const voice = voices.find((v) => v.voiceURI === voiceUri);
+            if (voice) {
+                utterance.voice = voice;
+                utterance.lang = voice.lang;
+            }
+        }
+        utterance.onend = () => setPlayingId(null);
+        utterance.onerror = () => setPlayingId(null);
+        utterance.onstart = () => onListen(chapter.id);
+        setPlayingId(chapter.id);
+        window.speechSynthesis.speak(utterance);
+    };
+
+    return (
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-3">
+            <span className="text-sm font-bold text-brand-900">🎧 Listen</span>
+            <select
+                value={chapterId}
+                onChange={(e) => setChapterId(Number(e.target.value))}
+                className="min-w-0 max-w-[260px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-brand-500"
+            >
+                {chapters.map((c, i) => (
+                    <option key={c.id} value={c.id}>
+                        Chapter {i + 1}: {c.name}
+                    </option>
+                ))}
+            </select>
+            {voices.length > 0 && (
+                <select
+                    value={voiceUri}
+                    onChange={(e) => setVoiceUri(e.target.value)}
+                    className="min-w-0 max-w-[200px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-brand-500"
+                >
+                    <option value="">Auto voice</option>
+                    {voices.map((v) => (
+                        <option key={v.voiceURI} value={v.voiceURI}>
+                            {v.name}
+                        </option>
+                    ))}
+                </select>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+                <button
+                    onClick={play}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+                >
+                    {playingId != null ? '⏳ Playing…' : '▶ Play'}
+                </button>
+                <button
+                    onClick={stop}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                    ⏹ Stop
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function BookReader() {
     const { bookId } = useParams();
     const navigate = useNavigate();
@@ -579,6 +704,13 @@ export default function BookReader() {
     // Refs for scroll-mode chapter tracking
     const chapterRefs = useRef<Map<number, HTMLElement>>(new Map());
     const [visibleChapter, setVisibleChapter] = useState(0);
+
+    const chapters = useMemo(() => book?.chapters ?? [], [book]);
+    const firstLockedIndex = chapters.findIndex((ch) => ch.is_unlocked === false);
+    const visibleChapters = useMemo(() => {
+        const firstLockedIndex = chapters.findIndex((ch) => ch.is_unlocked === false);
+        return firstLockedIndex === -1 ? chapters : chapters.slice(0, firstLockedIndex + 1);
+    }, [chapters]);
 
     const load = useCallback(async () => {
         if (!bookId) return;
@@ -594,6 +726,19 @@ export default function BookReader() {
     }, [bookId]);
 
     useEffect(() => { void load(); }, [load]);
+
+    // Progress tracking: report a chapter as read/listened once per session.
+    // The server keeps the max percent, so repeat visits only ever raise it.
+    const reportedChapters = useRef<Set<number>>(new Set());
+
+    const reportProgress = useCallback((chapterId: number, type: 'read' | 'listen') => {
+        if (!chapterId || reportedChapters.current.has(chapterId)) return;
+        reportedChapters.current.add(chapterId);
+        api.post('/student/progress', { node_id: chapterId, type, percent: 100 }).catch(() => {});
+    }, []);
+
+    const reportRead = useCallback((chapterId: number) => reportProgress(chapterId, 'read'), [reportProgress]);
+    const reportListen = useCallback((chapterId: number) => reportProgress(chapterId, 'listen'), [reportProgress]);
 
     // Intersection observer for scroll mode chapter tracking
     useEffect(() => {
@@ -628,7 +773,7 @@ export default function BookReader() {
         const handler = (e: KeyboardEvent) => {
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault();
-                setCurrentChapter((prev) => Math.min(prev + 1, book.chapters.length - 1));
+                setCurrentChapter((prev) => Math.min(prev + 1, visibleChapters.length - 1));
             } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
                 e.preventDefault();
                 setCurrentChapter((prev) => Math.max(prev - 1, 0));
@@ -636,7 +781,7 @@ export default function BookReader() {
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [mode, book]);
+    }, [mode, book, visibleChapters]);
 
     // Scroll to top on page-mode chapter change
     useEffect(() => {
@@ -653,9 +798,16 @@ export default function BookReader() {
         setTocOpen(false);
     }, []);
 
-    const chapters = useMemo(() => book?.chapters ?? [], [book]);
     const activeChapter = mode === 'scroll' ? visibleChapter : currentChapter;
-    const progress = chapters.length > 0 ? ((activeChapter + 1) / chapters.length) * 100 : 0;
+    const progress = visibleChapters.length > 0 ? ((activeChapter + 1) / visibleChapters.length) * 100 : 0;
+
+    // Report the currently active chapter as read (both scroll & page modes).
+    useEffect(() => {
+        const ch = visibleChapters[activeChapter];
+        if (ch && ch.is_unlocked !== false) {
+            reportRead(ch.id);
+        }
+    }, [activeChapter, visibleChapters, reportRead]);
 
     // --- Loading / error states ---
     if (loading) {
@@ -717,11 +869,18 @@ export default function BookReader() {
                 mode={mode}
                 onModeChange={setMode}
                 activeChapter={activeChapter}
-                totalChapters={chapters.length}
+                totalChapters={visibleChapters.length}
                 progress={progress}
                 onBack={() => navigate('/library')}
                 onTocToggle={() => setTocOpen(!tocOpen)}
             />
+
+            {/* Chapter audio player */}
+            {chapters.length > 0 && (
+                <div className="mx-auto mt-4 max-w-3xl px-4">
+                    <ChapterAudioPlayer chapters={chapters} currentChapter={activeChapter} onListen={reportListen} />
+                </div>
+            )}
 
             {/* Table of contents sidebar */}
             {tocOpen && (
@@ -735,7 +894,7 @@ export default function BookReader() {
                             </button>
                         </div>
                         <nav className="p-3">
-                            {chapters.map((ch, idx) => (
+                            {visibleChapters.map((ch, idx) => (
                                 <button
                                     key={ch.id}
                                     onClick={() => {
@@ -749,7 +908,7 @@ export default function BookReader() {
                                     }`}
                                 >
                                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-500">
-                                        {idx + 1}
+                                        {ch.is_unlocked === false ? '🔒' : idx + 1}
                                     </span>
                                     <span className="truncate">{ch.name}</span>
                                 </button>
@@ -764,7 +923,7 @@ export default function BookReader() {
                 {mode === 'scroll' ? (
                     /* ── SCROLL MODE ── */
                     <div className="space-y-0">
-                        {chapters.map((ch, idx) => {
+                        {visibleChapters.map((ch, idx) => {
                             const isLocked = ch.is_unlocked === false;
                             return (
                                 <section
@@ -839,13 +998,15 @@ export default function BookReader() {
                         })}
 
                         {/* End of book */}
-                        <div className="mt-16 border-t border-gray-200 py-12 text-center">
-                            <BookOpenIcon className="mx-auto h-10 w-10 text-gray-300" />
-                            <p className="mt-3 text-sm font-medium text-gray-500">End of Book</p>
-                            <Button variant="secondary" className="mt-4" onClick={() => navigate('/library')}>
-                                <ArrowLeftIcon className="h-4 w-4" /> Back to Library
-                            </Button>
-                        </div>
+                        {firstLockedIndex === -1 && (
+                            <div className="mt-16 border-t border-gray-200 py-12 text-center">
+                                <BookOpenIcon className="mx-auto h-10 w-10 text-gray-300" />
+                                <p className="mt-3 text-sm font-medium text-gray-500">End of Book</p>
+                                <Button variant="secondary" className="mt-4" onClick={() => navigate('/library')}>
+                                    <ArrowLeftIcon className="h-4 w-4" /> Back to Library
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     /* ── PAGE MODE ── */
@@ -854,23 +1015,23 @@ export default function BookReader() {
                         <div className="mb-8">
                             <div className="flex items-center justify-between">
                                 <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-brand-500">
-                                    Chapter {currentChapter + 1} of {chapters.length}
+                                    Chapter {currentChapter + 1} of {visibleChapters.length}
                                 </span>
-                                {chapters[currentChapter].is_unlocked === false && (
+                                {visibleChapters[currentChapter].is_unlocked === false && (
                                     <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">
                                         🔒 Locked
                                     </span>
                                 )}
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-                                {chapters[currentChapter].name}
+                                {visibleChapters[currentChapter].name}
                             </h2>
-                            {chapters[currentChapter].description && (
-                                <p className="mt-2 text-gray-500">{chapters[currentChapter].description}</p>
+                            {visibleChapters[currentChapter].description && (
+                                <p className="mt-2 text-gray-500">{visibleChapters[currentChapter].description}</p>
                             )}
                         </div>
 
-                        {chapters[currentChapter].is_unlocked === false ? (
+                        {visibleChapters[currentChapter].is_unlocked === false ? (
                             /* Chapter Lock Screen */
                             <div className="my-8 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-8 text-center">
                                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white text-2xl shadow-md">
@@ -891,12 +1052,12 @@ export default function BookReader() {
                         ) : (
                             <>
                                 <div className="space-y-6">
-                                    {chapters[currentChapter].content_blocks.map((block) => (
+                                    {visibleChapters[currentChapter].content_blocks.map((block) => (
                                         <BlockRenderer key={block.id} block={block} />
                                     ))}
                                 </div>
 
-                                {chapters[currentChapter].content_blocks.length === 0 && (
+                                {visibleChapters[currentChapter].content_blocks.length === 0 && (
                                     <Card className="mt-4">
                                         <CardBody>
                                             <p className="py-8 text-center text-sm italic text-gray-400">
@@ -907,10 +1068,10 @@ export default function BookReader() {
                                 )}
 
                                 {/* End of Chapter Exam */}
-                                {chapters[currentChapter].exam && (
+                                {visibleChapters[currentChapter].exam && (
                                     <ChapterExamCard
-                                        exam={chapters[currentChapter].exam!}
-                                        chapterName={chapters[currentChapter].name}
+                                        exam={visibleChapters[currentChapter].exam!}
+                                        chapterName={visibleChapters[currentChapter].name}
                                         onSuccess={() => void load()}
                                     />
                                 )}
@@ -928,7 +1089,7 @@ export default function BookReader() {
                                         <ChevronLeftIcon className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
                                         <div className="text-left">
                                             <span className="block text-xs text-gray-400">Previous</span>
-                                            <span className="block max-w-[140px] truncate sm:max-w-[200px]">{chapters[currentChapter - 1].name}</span>
+                                            <span className="block max-w-[140px] truncate sm:max-w-[200px]">{visibleChapters[currentChapter - 1].name}</span>
                                         </div>
                                     </button>
                                 ) : (
@@ -937,12 +1098,12 @@ export default function BookReader() {
                             </div>
 
                             <div>
-                                {currentChapter < chapters.length - 1 ? (
+                                {currentChapter < visibleChapters.length - 1 ? (
                                     <button
                                         onClick={() => setCurrentChapter(currentChapter + 1)}
-                                        disabled={chapters[currentChapter + 1]?.is_unlocked === false}
+                                        disabled={visibleChapters[currentChapter + 1]?.is_unlocked === false}
                                         className={`group flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
-                                            chapters[currentChapter + 1]?.is_unlocked === false
+                                            visibleChapters[currentChapter + 1]?.is_unlocked === false
                                                 ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                                                 : 'border-gray-200 text-gray-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700'
                                         }`}
@@ -950,7 +1111,7 @@ export default function BookReader() {
                                         <div className="text-right">
                                             <span className="block text-xs text-gray-400">Next</span>
                                             <span className="block max-w-[140px] truncate sm:max-w-[200px]">
-                                                {chapters[currentChapter + 1]?.is_unlocked === false ? '🔒 Locked' : chapters[currentChapter + 1].name}
+                                                {visibleChapters[currentChapter + 1]?.is_unlocked === false ? '🔒 Locked' : visibleChapters[currentChapter + 1].name}
                                             </span>
                                         </div>
                                         <ChevronRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />

@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamQuestion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Smalot\PdfParser\Parser;
 
 class QuestionController extends Controller
 {
@@ -77,25 +78,62 @@ class QuestionController extends Controller
             'raw_text' => ['required', 'string'],
         ]);
 
-        $text = $validated['raw_text'];
-        $questionsCreated = 0;
+        $questionsCreated = $this->createQuestions($exam, $this->parseText($validated['raw_text']));
 
-        // Basic parser for format:
-        // 1. Question text here?
-        // A) Option 1
-        // B) Option 2
-        // C) Option 3
-        // D) Option 4
-        // Answer: A
+        return response()->json([
+            'message' => "Successfully imported {$questionsCreated} questions.",
+            'count' => $questionsCreated,
+        ]);
+    }
 
-        // Split by numbered question pattern (e.g. "1. ", "2. ", "1) ", "2) ")
+    /**
+     * Import questions from an uploaded PDF (numbered multiple-choice blocks:
+     * question text, A)…D) options and "Answer: X").
+     */
+    public function importPdf(Request $request, Exam $exam): JsonResponse
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
+        ]);
+
+        $text = $this->extractText($request->file('file'));
+
+        if ($text === null || trim($text) === '') {
+            return response()->json([
+                'message' => 'Could not extract any questions text from the PDF. Scanned (image-only) PDFs are not supported — please use a digital PDF with selectable text.',
+            ], 422);
+        }
+
+        $questionsCreated = $this->createQuestions($exam, $this->parseText($text));
+
+        return response()->json([
+            'message' => "Successfully imported {$questionsCreated} questions.",
+            'count' => $questionsCreated,
+        ], $questionsCreated > 0 ? 201 : 200);
+    }
+
+    /**
+     * Parse CSV/text and PDF content into multiple-choice questions. Format:
+     *
+     *  1. Question text here?
+     *  A) Option 1
+     *  B) Option 2
+     *  C) Option 3
+     *  D) Option 4
+     *  Answer: A
+     */
+    private function parseText(string $text): array
+    {
         $blocks = preg_split('/^\s*\d+[\.\)]\s*/m', $text, -1, PREG_SPLIT_NO_EMPTY);
+
+        $out = [];
 
         foreach ($blocks as $block) {
             $block = trim($block);
-            if (empty($block)) continue;
+            if ($block === '') {
+                continue;
+            }
 
-            // Extract Answer
             $answerStr = '';
             if (preg_match('/Answer:\s*([A-Za-z])/i', $block, $match)) {
                 $answerStr = strtoupper(trim($match[1]));
@@ -105,54 +143,81 @@ class QuestionController extends Controller
                 $block = preg_replace('/Correct:\s*[A-Za-z].*/i', '', $block);
             }
 
-            // Extract Options
             $options = [];
-            $lines = explode("\n", $block);
             $questionTextLines = [];
-            
             $optionRegex = '/^([A-E])[\.\)]\s*(.+)/i';
-            
-            foreach ($lines as $line) {
+
+            foreach (explode("\n", $block) as $line) {
                 $line = trim($line);
-                if (empty($line)) continue;
-                
+                if ($line === '') {
+                    continue;
+                }
+
                 if (preg_match($optionRegex, $line, $optMatch)) {
-                    $letter = strtoupper($optMatch[1]);
-                    $optText = trim($optMatch[2]);
-                    $options[$letter] = $optText;
-                } else {
-                    // If we haven't found options yet, it's part of the question
-                    if (empty($options)) {
-                        $questionTextLines[] = $line;
-                    }
+                    $options[strtoupper($optMatch[1])] = trim($optMatch[2]);
+                } elseif (empty($options)) {
+                    $questionTextLines[] = $line;
                 }
             }
-            
-            $questionText = trim(implode("\n", $questionTextLines));
-            
-            if (!empty($questionText) && count($options) >= 2) {
-                // Determine correct answer text
-                $correctAnswerText = $options[$answerStr] ?? null;
-                if (!$correctAnswerText && !empty($options)) {
-                    // Default to first option if no valid answer found
-                    $correctAnswerText = reset($options);
-                }
-                
-                $exam->questions()->create([
-                    'question' => $questionText,
-                    'type' => 'multiple_choice',
-                    'options' => array_values($options),
-                    'correct_answer' => $correctAnswerText,
-                    'points' => 1,
-                    'position' => $exam->questions()->max('position') + 1,
-                ]);
-                $questionsCreated++;
+
+            if (count($options) < 2) {
+                continue;
             }
+
+            $correctAnswerText = $options[$answerStr] ?? reset($options);
+
+            $out[] = [
+                'question' => trim(implode("\n", $questionTextLines)) ?: 'Question',
+                'options' => array_values($options),
+                'correct_answer' => $correctAnswerText,
+            ];
         }
 
-        return response()->json([
-            'message' => "Successfully imported {$questionsCreated} questions.",
-            'count' => $questionsCreated
-        ]);
+        return $out;
+    }
+
+    private function createQuestions(Exam $exam, array $questions): int
+    {
+        $created = 0;
+
+        foreach ($questions as $q) {
+            $exam->questions()->create([
+                'question' => $q['question'],
+                'type' => 'multiple_choice',
+                'options' => $q['options'],
+                'correct_answer' => $q['correct_answer'],
+                'points' => 1,
+                'position' => ($exam->questions()->max('position') ?? 0) + 1,
+            ]);
+            $created++;
+        }
+
+        return $created;
+    }
+
+    private function extractText($file): ?string
+    {
+        try {
+            set_time_limit(45);
+
+            register_shutdown_function(function () {
+                $error = error_get_last();
+
+                if (is_array($error) && str_contains((string) $error['message'], 'Maximum execution time')) {
+                    http_response_code(422);
+                    header('Content-Type: application/json', true);
+                    echo json_encode([
+                        'message' => 'This PDF took too long to analyze and was cancelled. Please use a smaller digital PDF.',
+                    ]);
+                }
+            });
+
+            $parser = new Parser();
+            $pdf = $parser->parseFile($file->getRealPath());
+
+            return $pdf->getText();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

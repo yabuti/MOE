@@ -153,3 +153,60 @@ export interface Paginated<T> {
     per_page: number;
     total: number;
 }
+
+export interface ChapterExamProgress {
+    id: number;
+    title: string;
+    percentage: number;
+    passed: boolean;
+    attempted: boolean;
+}
+
+export interface ChapterProgress {
+    id: number;
+    name: string;
+    read_percent: number;
+    listen_percent: number;
+    activity_percent: number;
+    exam: ChapterExamProgress | null;
+}
+
+export interface BookProgress {
+    id: number;
+    name: string;
+    category?: string | null;
+    grade?: string | null;
+    read_percent: number;
+    listen_percent: number;
+    exam_percent: number | null;
+    chapters: ChapterProgress[];
+}
+
+export interface MostReadChapter {
+    chapter_name: string;
+    book_name: string;
+    percent: number;
+}
+
+export interface ProgressReport {
+    overall_read: number;
+    overall_understand: number;
+    most_read_chapter: MostReadChapter | null;
+    books: BookProgress[];
+}
+
+export interface ChildSummary {
+    overall_read: number;
+    overall_understand: number;
+    most_read_chapter: MostReadChapter | null;
+    books_count: number;
+}
+
+export interface Child {
+    id: number;
+    name: string;
+    email: string;
+    parent_name?: string | null;
+    linked_at?: string | null;
+    summary: ChildSummary;
+}

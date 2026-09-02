@@ -21,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
+
+        $middleware->redirectGuestsTo(
+            static fn (Request $request) => response()->json(['message' => 'Unauthenticated.'], 401),
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -55,6 +56,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        AuditLogger::record('login', null, null, ['email' => $user->email], ['user_id' => $user->id], $user->id);
+
         return response()->json([
             'message' => 'Logged in successfully.',
             'user' => $this->userPayload($user),
@@ -64,6 +67,8 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        AuditLogger::record('logout', $request->user());
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

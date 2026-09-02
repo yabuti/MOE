@@ -14,7 +14,7 @@ class ReaderController extends Controller
      * Return the published catalog tree for the student library view.
      * Structure: categories → grades → books (no chapters exposed here).
      */
-    public function library(): JsonResponse
+    public function library(Request $request): JsonResponse
     {
         $categoryType = CatalogNodeType::where('slug', 'category')->first();
         $gradeType = CatalogNodeType::where('slug', 'grade')->first();
@@ -24,17 +24,19 @@ class ReaderController extends Controller
             return response()->json(['categories' => []]);
         }
 
+        $bookReadPercent = \App\Support\ProgressReport::bookReadPercent($request->user());
+
         $categories = CatalogNode::where('catalog_node_type_id', $categoryType->id)
             ->where('status', 'published')
             ->orderBy('sort_order')
             ->get()
-            ->map(function ($category) use ($gradeType, $bookType) {
+            ->map(function ($category) use ($gradeType, $bookType, $bookReadPercent) {
                 $grades = CatalogNode::where('parent_id', $category->id)
                     ->where('catalog_node_type_id', $gradeType->id)
                     ->where('status', 'published')
                     ->orderBy('sort_order')
                     ->get()
-                    ->map(function ($grade) use ($bookType) {
+                    ->map(function ($grade) use ($bookType, $bookReadPercent) {
                         $books = CatalogNode::where('parent_id', $grade->id)
                             ->where('catalog_node_type_id', $bookType->id)
                             ->where('status', 'published')
@@ -47,6 +49,7 @@ class ReaderController extends Controller
                                 'slug' => $book->slug,
                                 'description' => $book->description,
                                 'chapters_count' => $book->children_count,
+                                'read_percent' => $bookReadPercent[$book->id] ?? 0,
                             ]);
 
                         return [
@@ -216,12 +219,15 @@ class ReaderController extends Controller
             $correctAns = trim((string) ($question->correct_answer ?? ''));
 
             $isCorrect = false;
-            if ($question->type === 'multiple_choice' || $question->type === 'true_false') {
+            if ($userAns === '') {
+                // Skipped/unanswered questions never count as correct.
+                $isCorrect = false;
+            } elseif ($question->type === 'multiple_choice' || $question->type === 'true_false') {
                 $isCorrect = strtolower($userAns) === strtolower($correctAns);
             } else {
-                // Short answer / fill blank: flexible match
-                $isCorrect = (strtolower($userAns) === strtolower($correctAns))
-                    || ($correctAns !== '' && str_contains(strtolower($userAns), strtolower($correctAns)));
+                // Short answer / fill blank: exact match only (strict, so random
+                // input is never graded as correct).
+                $isCorrect = $correctAns !== '' && strtolower($userAns) === strtolower($correctAns);
             }
 
             if ($isCorrect) {

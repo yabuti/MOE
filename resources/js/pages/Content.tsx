@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,7 @@ const emptyForm: ContentItem = { id: 0, catalog_node_id: 0, type: 'text', title:
 interface TreeNode {
     id: number;
     name: string;
+    type: string | null;
     children: TreeNode[];
 }
 
@@ -40,6 +41,10 @@ export default function Content() {
     const [blocks, setBlocks] = useState<ContentItem[]>([]);
     const [media, setMedia] = useState<Media[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const [gradeId, setGradeId] = useState('');
+    const [bookId, setBookId] = useState('');
+    const [chapterId, setChapterId] = useState('');
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<ContentItem | null>(null);
@@ -235,29 +240,50 @@ export default function Content() {
     const canDelete = hasPermission('delete content');
 
     if (!nodeId) {
+        const grades = allNodes.filter((n) => n.type === 'grade');
+        const selectedGrade = grades.find((g) => g.id === Number(gradeId));
+        const books = selectedGrade?.children ?? [];
+        const selectedBook = books.find((b) => b.id === Number(bookId));
+        const chapters = selectedBook?.children ?? [];
+
         return (
             <div>
-                <PageHeader title="Content" description="Select a catalog node (e.g. a chapter) to manage its content and media" />
+                <PageHeader title="Content" description="Select a grade, then a subject, then a chapter to view and manage its content" />
                 {loading ? (
                     <Card><CardBody><div className="py-10 text-center text-sm text-gray-500">Loading catalog…</div></CardBody></Card>
+                ) : grades.length === 0 ? (
+                    <Card>
+                        <CardBody>
+                            <EmptyState title="No grades available" description="Create a Category → Grade structure in the Catalog first." />
+                        </CardBody>
+                    </Card>
                 ) : (
                     <Card>
                         <CardBody>
-                            {tree.length === 0 ? (
-                                <EmptyState title="No catalog nodes" description="Create catalog nodes first." />
-                            ) : (
-                                <div className="space-y-1">
-                                    {allNodes.map((n) => (
-                                        <Link
-                                            key={n.id}
-                                            to={`/content/${n.id}`}
-                                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700"
-                                        >
-                                            <span className="text-gray-400">▸</span> {n.name}
-                                        </Link>
-                                    ))}
+                            <div className="max-w-4xl space-y-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                    <Select label="Step 1 · Grade" value={gradeId} onChange={(e) => { setGradeId(e.target.value); setBookId(''); setChapterId(''); }}>
+                                        <option value="">Select grade…</option>
+                                        {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                    </Select>
+                                    <Select label="Step 2 · Subject" value={bookId} onChange={(e) => { setBookId(e.target.value); setChapterId(''); }} disabled={!gradeId}>
+                                        <option value="">Select subject…</option>
+                                        {books.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </Select>
+                                    <Select
+                                        label="Step 3 · Chapter"
+                                        value={chapterId}
+                                        onChange={(e) => { const id = e.target.value; setChapterId(id); if (id) navigate(`/content/${id}`); }}
+                                        disabled={!bookId}
+                                    >
+                                        <option value="">Select chapter…</option>
+                                        {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </Select>
                                 </div>
-                            )}
+                                {!gradeId && <p className="text-sm text-gray-500">Choose a grade first — subjects load only after a grade is selected.</p>}
+                                {!bookId && gradeId && <p className="text-sm text-gray-500">Choose a subject to see its chapters.</p>}
+                                {bookId && !chapterId && <p className="text-sm text-gray-500">Select a chapter to review its existing content and add new blocks.</p>}
+                            </div>
                         </CardBody>
                     </Card>
                 )}

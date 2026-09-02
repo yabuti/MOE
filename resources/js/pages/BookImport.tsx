@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { toast } from 'react-toastify';
+import { isAxiosError } from 'axios';
 import { api, getErrorMessage } from '../api/client';
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, Input, PageHeader, Select } from '../components/ui';
 import { ArrowPathIcon, DocumentArrowUpIcon, FolderIcon } from '@heroicons/react/24/outline';
@@ -67,11 +68,14 @@ export default function BookImport() {
     const handleFile = (f: File | null) => {
         setFile(f);
         setPreview(null);
-        setError(null);
-        if (f) {
-            const base = f.name.replace(/\.pdf$/i, '').replace(/[_\-]+/g, ' ').trim();
-            setBookTitle(base);
+        if (!f) return;
+        if (f.size > 50 * 1024 * 1024) {
+            setFile(null);
+            toast.error('PDF is too large (max 50 MB).');
+            return;
         }
+        const base = f.name.replace(/\.pdf$/i, '').replace(/[_\-]+/g, ' ').trim();
+        setBookTitle(base);
     };
 
     const runAnalysis = async (e: FormEvent) => {
@@ -83,13 +87,18 @@ export default function BookImport() {
             formData.append('file', file);
             const { data } = await api.post<{ tree: DetectedSection[]; text_preview?: string }>('/books/import/preview', formData, {
                 headers: { 'Content-Type': undefined },
+                timeout: 120000,
             });
             setPreview(data);
             if (!data.tree || data.tree.length === 0) {
                 toast.error('No chapter headings were detected in this PDF.');
             }
         } catch (err) {
-            toast.error(getErrorMessage(err));
+            if (isAxiosError(err) && err.code === 'ECONNABORTED') {
+                toast.error('Analysis timed out. The PDF is probably too large or a scanned (image-only) book.');
+            } else {
+                toast.error(getErrorMessage(err));
+            }
         } finally {
             setAnalyzing(false);
         }
@@ -142,7 +151,7 @@ export default function BookImport() {
                                     <span className="mt-3 text-sm font-medium text-gray-700">
                                         {file ? file.name : 'Click to choose a PDF'}
                                     </span>
-                                    <span className="mt-1 text-xs text-gray-500">.pdf · up to 50 MB</span>
+                                    <span className="mt-1 text-xs text-gray-500">Digital .pdf · up to 50 MB</span>
                                     <input
                                         type="file"
                                         accept="application/pdf,.pdf"
@@ -160,6 +169,9 @@ export default function BookImport() {
                                 <Button type="submit" className="w-full" loading={analyzing} disabled={!file}>
                                     {analyzing ? 'Analyzing…' : 'Run Analysis'}
                                 </Button>
+                                {analyzing && (
+                                    <p className="text-xs text-gray-500">Reading the PDF… this can take a while for large books. Scanned PDFs (images only) cannot be analyzed.</p>
+                                )}
                             </form>
                         </CardBody>
                     </Card>

@@ -8,20 +8,29 @@ import {
     Bars3Icon,
     BookOpenIcon,
     BuildingOfficeIcon,
+    ChartBarIcon,
     DocumentArrowUpIcon,
     FolderIcon,
     HomeIcon,
     InboxIcon,
     PhotoIcon,
     ShieldCheckIcon,
-    Squares2X2Icon,
     TagIcon,
+    UserGroupIcon,
     UsersIcon,
     XMarkIcon,
 } from '@heroicons/react/24/outline';
 
-const navigation = [
+const navigation: Array<{
+    name: string;
+    to: string;
+    icon: (typeof HomeIcon);
+    permission?: string;
+    roles?: string[];
+}> = [
     { name: 'Dashboard', to: '/', icon: HomeIcon, permission: 'view dashboard' },
+    { name: 'My Progress', to: '/my-progress', icon: ChartBarIcon, roles: ['student'] },
+    { name: 'Parent Dashboard', to: '/parent', icon: UserGroupIcon, roles: ['parent'] },
     { name: 'Schools', to: '/schools', icon: BuildingOfficeIcon, permission: 'view schools' },
     { name: 'Node Types', to: '/node-types', icon: TagIcon, permission: 'view node types' },
     { name: 'Catalog', to: '/catalog', icon: FolderIcon, permission: 'view catalog' },
@@ -29,7 +38,7 @@ const navigation = [
     { name: 'Content', to: '/content', icon: BookOpenIcon, permission: 'view content' },
     { name: 'Media', to: '/media', icon: PhotoIcon, permission: 'upload media' },
     { name: 'Exams', to: '/exams', icon: AcademicCapIcon, permission: 'view exams' },
-    { name: 'Library', to: '/library', icon: BookOpenIcon, permission: 'view catalog' },
+    { name: 'Library', to: '/library', icon: BookOpenIcon },
     { name: 'Users', to: '/users', icon: UsersIcon, permission: 'view users' },
     { name: 'Roles', to: '/roles', icon: ShieldCheckIcon, permission: 'view roles' },
     { name: 'Audit Logs', to: '/audit-logs', icon: InboxIcon, permission: 'view audit logs' },
@@ -67,7 +76,14 @@ export default function Layout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const visibleNavigation = navigation.filter((item) => !item.permission || user?.permissions?.includes(item.permission));
+    const isAdmin = user?.roles?.some((ur) => ur.name === 'admin');
+
+    const visibleNavigation = navigation.filter((item) => {
+        if (item.roles && item.roles.length > 0) {
+            return isAdmin || item.roles.some((role) => user?.roles?.some((ur) => ur.name === role));
+        }
+        return !item.permission || user?.permissions?.includes(item.permission);
+    });
 
     const handleLogout = async () => {
         await logout();

@@ -11,6 +11,7 @@ interface Book {
     slug: string;
     description?: string;
     chapters_count: number;
+    read_percent?: number;
 }
 
 interface Grade {
@@ -142,10 +143,24 @@ export default function Library() {
                                                         <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
                                                             {book.chapters_count} {book.chapters_count === 1 ? 'chapter' : 'chapters'}
                                                         </span>
-                                                        <span className="text-sm font-medium text-brand-600 group-hover:text-brand-700">
-                                                            Read →
-                                                        </span>
+                                                        {typeof book.read_percent === 'number' && book.read_percent > 0 ? (
+                                                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                                                                {book.read_percent}% read
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-sm font-medium text-brand-600 group-hover:text-brand-700">
+                                                                Read →
+                                                            </span>
+                                                        )}
                                                     </div>
+                                                    {typeof book.read_percent === 'number' && book.read_percent > 0 && (
+                                                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                                            <div
+                                                                className="h-full rounded-full bg-emerald-500 transition-all"
+                                                                style={{ width: `${Math.min(100, book.read_percent)}%` }}
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </Link>
                                         );

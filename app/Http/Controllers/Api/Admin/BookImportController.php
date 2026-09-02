@@ -27,7 +27,7 @@ class BookImportController extends Controller
 
         if ($text === null || trim($text) === '') {
             return response()->json([
-                'message' => 'Could not extract any text from the PDF.',
+                'message' => 'Could not extract any text from the PDF. Scanned (image-only) books are not supported — please use a digital PDF with selectable text.',
             ], 422);
         }
 
@@ -55,7 +55,7 @@ class BookImportController extends Controller
 
         if ($text === null || trim($text) === '') {
             return response()->json([
-                'message' => 'Could not extract any text from the PDF.',
+                'message' => 'Could not extract any text from the PDF. Scanned (image-only) books are not supported — please use a digital PDF with selectable text.',
             ], 422);
         }
 
@@ -135,8 +135,26 @@ class BookImportController extends Controller
     private function extractText($file): ?string
     {
         try {
+            // Guard against pathological PDFs wedging the single-threaded dev
+            // server: cap the parse time and emit a clean 422 if a fatal timeout
+            // kills this request mid-parse.
+            set_time_limit(45);
+
+            register_shutdown_function(function () {
+                $error = error_get_last();
+
+                if (is_array($error) && str_contains((string) $error['message'], 'Maximum execution time')) {
+                    http_response_code(422);
+                    header('Content-Type: application/json', true);
+                    echo json_encode([
+                        'message' => 'This PDF took too long to analyze and was cancelled. Scanned (image-only) or very large PDFs are not supported — please use a smaller digital book PDF.',
+                    ]);
+                }
+            });
+
             $parser = new Parser();
             $pdf = $parser->parseFile($file->getRealPath());
+
             return $pdf->getText();
         } catch (\Throwable $e) {
             return null;
@@ -155,21 +173,60 @@ class BookImportController extends Controller
     {
         $chapters = [];
         $chapterPattern = '/^(?:ምዕራፍ|chapter|unit)\b/iu';
-        $sectionPattern = '/^(?:ክፍል|section|lesson|ትምህርት)\b/iu';
 
         $lines = preg_split('/\R/u', $text);
+
+        // Locate the Table of Contents region so its entries are NOT treated as chapters.
+        $tocStart = null;
+        foreach ($lines as $i => $line) {
+            if (preg_match('/^(?:table\s+of\s+contents|contents|ዝርዝር|ማውጫ|ይዘት)/iu', trim($line))) {
+                $tocStart = $i;
+                break;
+            }
+        }
+
+        $tocEnd = null;
+        if ($tocStart !== null) {
+            for ($i = $tocStart + 1; $i < count($lines); $i++) {
+                $trimmed = trim($lines[$i]);
+                if ($trimmed === '') {
+                    continue;
+                }
+                $normalized = $this->normalizeHeadingLine($trimmed);
+                if ($normalized !== '' && preg_match($chapterPattern, $normalized) && ! $this->looksLikeTocEntry($trimmed)) {
+                    // The first real chapter heading ends the Table of Contents.
+                    $tocEnd = $i;
+                    break;
+                }
+            }
+            if ($tocEnd === null) {
+                // Everything after the ToC header looks like a ToC entry (rare): ignore the whole tail.
+                $tocEnd = count($lines);
+            }
+        }
+
         $currentChapterIndex = -1;
 
-        foreach ($lines as $line) {
+        foreach ($lines as $i => $line) {
             $trimmedLine = trim($line);
 
             if ($trimmedLine === '') {
                 continue;
             }
 
+            // Skip the whole Table of Contents region.
+            if ($tocStart !== null && $i >= $tocStart && $i < $tocEnd) {
+                continue;
+            }
+
             $normalized = $this->normalizeHeadingLine($trimmedLine);
 
             if ($normalized !== '' && preg_match($chapterPattern, $normalized)) {
+                // Dot-leader / trailing-page-number lines are Table of Contents
+                // entries, not real headings (and not body text either).
+                if ($this->looksLikeTocEntry($trimmedLine)) {
+                    continue;
+                }
                 $chapters[] = [
                     'heading' => $trimmedLine,
                     'title' => $this->buildTitle($trimmedLine, 'Chapter', 'ምዕራፍ'),
@@ -284,6 +341,27 @@ class BookImportController extends Controller
         $text = preg_replace('/\s*(-+>|=>|=)\s*/', ' → ', $text);
 
         return $text;
+    }
+
+    /**
+     * Detect lines that are Table of Contents entries rather than real headings:
+     * dot-leader padding, ellipses, or a trailing page number.
+     */
+    private function looksLikeTocEntry(string $line): bool
+    {
+        if (preg_match('/\.{2,}\s*$/u', $line)) {
+            return true;
+        }
+        if (preg_match('/[.…]\s*\d{1,4}\s*$/u', $line)) {
+            return true;
+        }
+        if (preg_match('/\s+\d{1,4}\s*$/u', $line)) {
+            return true;
+        }
+        if (preg_match('/(?:^|\s)[ivxlcdm]{1,5}\s*$/u', $line)) {
+            return true;
+        }
+        return false;
     }
 
     /**

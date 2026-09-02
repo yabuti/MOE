@@ -29,7 +29,7 @@ class DashboardController extends Controller
 
         $recentAuditLogs = AuditLog::with('user:id,name')
             ->latest()
-            ->take(10)
+            ->take(4)
             ->get();
 
         $recentUsers = User::latest()

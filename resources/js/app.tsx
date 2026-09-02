@@ -17,6 +17,8 @@ import AuditLogs from './pages/AuditLogs';
 import BookImport from './pages/BookImport';
 import Library from './pages/Library';
 import BookReader from './pages/BookReader';
+import ParentDashboard from './pages/ParentDashboard';
+import MyProgress from './pages/MyProgress';
 
 export default function App() {
     return (
@@ -47,6 +49,8 @@ export default function App() {
                         <Route path="audit-logs" element={<AuditLogs />} />
                         <Route path="library" element={<Library />} />
                         <Route path="read/:bookId" element={<BookReader />} />
+                        <Route path="parent" element={<ParentDashboard />} />
+                        <Route path="my-progress" element={<MyProgress />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

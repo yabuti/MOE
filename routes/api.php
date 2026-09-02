@@ -13,7 +13,9 @@ use App\Http\Controllers\Api\Admin\RoleController;
 use App\Http\Controllers\Api\Admin\SchoolController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ParentController;
 use App\Http\Controllers\Api\ReaderController;
+use App\Http\Controllers\Api\StudentProgressController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -91,6 +93,7 @@ Route::prefix('v1')->group(function () {
         // Questions
         Route::post('/exams/{exam}/questions', [QuestionController::class, 'store'])->middleware('permission:manage questions');
         Route::post('/exams/{exam}/bulk-import', [QuestionController::class, 'bulkImport'])->middleware('permission:manage questions');
+        Route::post('/exams/{exam}/import-pdf', [QuestionController::class, 'importPdf'])->middleware('permission:manage questions');
         Route::put('/questions/{question}', [QuestionController::class, 'update'])->middleware('permission:manage questions');
         Route::delete('/questions/{question}', [QuestionController::class, 'destroy'])->middleware('permission:manage questions');
 
@@ -101,5 +104,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/reader/library', [ReaderController::class, 'library']);
         Route::get('/reader/books/{book}', [ReaderController::class, 'show']);
         Route::post('/reader/exams/{exam}/submit', [ReaderController::class, 'submitExam']);
+
+        // Student progress tracking & self-report
+        Route::get('/student/progress', [StudentProgressController::class, 'overview']);
+        Route::post('/student/progress', [StudentProgressController::class, 'record']);
+
+        // Parent dashboard
+        Route::get('/parent/children', [ParentController::class, 'index']);
+        Route::post('/parent/children', [ParentController::class, 'attach']);
+        Route::delete('/parent/children/{child}', [ParentController::class, 'detach']);
+        Route::get('/parent/children/{child}/progress', [ParentController::class, 'progress']);
     });
 });

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { api, getErrorMessage } from '../api/client';
 import { PageLoader, Card, CardBody, Badge, EmptyState } from '../components/ui';
 import { PageHeader } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
 import {
     AcademicCapIcon,
     BookOpenIcon,
@@ -27,14 +29,22 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+    const { user, loading } = useAuth();
     const [data, setData] = useState<DashboardData | null>(null);
     const [error, setError] = useState('');
 
     useEffect(() => {
+        if (!user || !user.permissions?.includes('view dashboard')) return;
         api.get<DashboardData>('/dashboard')
             .then(({ data }) => setData(data))
             .catch((err) => setError(getErrorMessage(err)));
-    }, []);
+    }, [user]);
+
+    if (loading || !user) return <PageLoader />;
+
+    const roles = user?.roles?.map((r) => r.name) ?? [];
+    if (roles.includes('parent')) return <Navigate to="/parent" replace />;
+    if (roles.includes('student')) return <Navigate to="/my-progress" replace />;
 
     if (error) {
         return (
@@ -58,9 +68,13 @@ export default function Dashboard() {
     ];
 
     return (
-        <div>
-            <PageHeader title="Dashboard" description="Overview of the platform" />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div
+            className="min-h-[calc(100vh-4.5rem)] rounded-2xl bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url('/image.webp')" }}
+        >
+            <div className="rounded-2xl p-6">
+                <PageHeader title="Dashboard" description="Overview of the platform" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {stats.map((s) => (
                     <Card key={s.label}>
                         <CardBody>
@@ -134,6 +148,7 @@ export default function Dashboard() {
                         )}
                     </CardBody>
                 </Card>
+            </div>
             </div>
         </div>
     );

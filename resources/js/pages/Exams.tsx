@@ -1,13 +1,27 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Pagination, Select, Table, Textarea, statusVariant } from '../components/ui';
-import type { CatalogNode, Exam } from '../types';
+import type { Exam } from '../types';
 import { PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface ExamItem extends Exam {}
+
+interface TreeNode {
+    id: number;
+    name: string;
+    type: string | null;
+    children: TreeNode[];
+}
+
+interface TreeOption {
+    id: number;
+    name: string;
+    path: string;
+    type: string | null;
+}
 
 const emptyForm = {
     catalog_node_id: '',
@@ -23,7 +37,6 @@ export default function Exams() {
     const { hasPermission } = useAuth();
     const navigate = useNavigate();
     const [exams, setExams] = useState<ExamItem[]>([]);
-    const [nodes, setNodes] = useState<CatalogNode[]>([]);
     const [page, setPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
     const [total, setTotal] = useState(0);
@@ -36,6 +49,15 @@ export default function Exams() {
 
     const [deleteTarget, setDeleteTarget] = useState<ExamItem | null>(null);
     const [deleting, setDeleting] = useState(false);
+
+    const [tree, setTree] = useState<TreeNode[]>([]);
+    const [gradeId, setGradeId] = useState('');
+    const [bookId, setBookId] = useState('');
+    const [chapterId, setChapterId] = useState('');
+
+    const [importFormat, setImportFormat] = useState<'pdf' | 'csv' | ''>('');
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const fileRef = useRef<HTMLInputElement>(null);
 
     const loadExams = useCallback(async (p: number) => {
         setLoading(true);
@@ -52,46 +74,41 @@ export default function Exams() {
         }
     }, []);
 
-    interface TreeOption {
-        id: number;
-        name: string;
-        path: string;
-        type: string | null;
-    }
+    const allNodes = useMemo(() => {
+        const out: TreeNode[] = [];
+        const walk = (nodesToWalk: TreeNode[]) => nodesToWalk.forEach((n) => { out.push(n); walk(n.children); });
+        walk(tree);
+        return out;
+    }, [tree]);
 
-    const [flatOptions, setFlatOptions] = useState<TreeOption[]>([]);
+    const flatOptions = useMemo<TreeOption[]>(() => {
+        const options: TreeOption[] = [];
 
-    const loadNodes = useCallback(async () => {
-        try {
-            const { data } = await api.get<{ tree: any[] }>('/catalog/tree');
-            const options: TreeOption[] = [];
-
-            const flatten = (nodes: any[], ancestors: string[] = []) => {
-                nodes.forEach((n) => {
-                    const currentPath = [...ancestors, n.name];
-                    options.push({
-                        id: n.id,
-                        name: n.name,
-                        path: currentPath.join(' › '),
-                        type: n.type,
-                    });
-                    if (n.children && n.children.length > 0) {
-                        flatten(n.children, currentPath);
-                    }
+        const flatten = (nodesArray: TreeNode[], ancestors: string[] = []) => {
+            nodesArray.forEach((n) => {
+                const currentPath = [...ancestors, n.name];
+                options.push({
+                    id: n.id,
+                    name: n.name,
+                    path: currentPath.join(' › '),
+                    type: n.type,
                 });
-            };
+                if (n.children && n.children.length > 0) {
+                    flatten(n.children, currentPath);
+                }
+            });
+        };
 
-            flatten(data.tree ?? []);
-            setFlatOptions(options);
-        } catch {
-            setFlatOptions([]);
-        }
-    }, []);
+        flatten(tree);
+        return options;
+    }, [tree]);
 
     useEffect(() => {
         void loadExams(1);
-        void loadNodes();
-    }, [loadExams, loadNodes]);
+        api.get<{ tree: TreeNode[] }>('/catalog/tree')
+            .then(({ data }) => setTree(data.tree))
+            .catch((err) => toast.error(getErrorMessage(err)));
+    }, [loadExams]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -106,13 +123,30 @@ export default function Exams() {
                 max_attempts: form.max_attempts ? Number(form.max_attempts) : null,
                 status: form.status,
             };
+            let examId: number;
             if (editing) {
                 await api.put(`/exams/${editing.id}`, payload);
                 toast.success('Exam updated');
+                examId = editing.id;
             } else {
-                await api.post('/exams', payload);
+                const { data } = await api.post<{ exam: { id: number } }>('/exams', payload);
                 toast.success('Exam created');
+                examId = data.exam.id;
             }
+
+            if (importFormat === 'csv' && importFile) {
+                const rawText = await importFile.text();
+                const { data } = await api.post<{ message: string }>(`/exams/${examId}/bulk-import`, { raw_text: rawText });
+                toast.success(data.message);
+            } else if (importFormat === 'pdf' && importFile) {
+                const formData = new FormData();
+                formData.append('file', importFile);
+                const { data } = await api.post<{ message: string }>(`/exams/${examId}/import-pdf`, formData, {
+                    headers: { 'Content-Type': undefined },
+                });
+                toast.success(data.message);
+            }
+
             setModalOpen(false);
             void loadExams(editing ? page : 1);
         } catch (err) {
@@ -141,13 +175,80 @@ export default function Exams() {
     const canEdit = hasPermission('edit exams');
     const canDelete = hasPermission('delete exams');
 
+    const findPath = (nodesToWalk: TreeNode[], targetId: number, trail: TreeNode[] = []): TreeNode[] | null => {
+        for (const n of nodesToWalk) {
+            const path = [...trail, n];
+            if (n.id === targetId) return path;
+            if (n.children && n.children.length > 0) {
+                const found = findPath(n.children, targetId, path);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    const openNew = () => {
+        setEditing(null);
+        setForm({ ...emptyForm, catalog_node_id: '' });
+        setGradeId('');
+        setBookId('');
+        setChapterId('');
+        setImportFormat('');
+        setImportFile(null);
+        setModalOpen(true);
+    };
+
+    const openEdit = (exam: ExamItem) => {
+        setEditing(exam);
+        setForm({
+            catalog_node_id: String(exam.catalog_node_id),
+            title: exam.title,
+            description: exam.description ?? '',
+            pass_percentage: exam.pass_percentage ?? 50,
+            duration_minutes: exam.duration_minutes ?? 30,
+            max_attempts: exam.max_attempts ?? 1,
+            status: exam.status,
+        });
+        const path = findPath(tree, exam.catalog_node_id) ?? [];
+        setGradeId(path.find((n) => n.type === 'grade') ? String(path.find((n) => n.type === 'grade')!.id) : '');
+        setBookId(path.find((n) => n.type === 'book') ? String(path.find((n) => n.type === 'book')!.id) : '');
+        setChapterId(path.find((n) => n.type === 'chapter') ? String(path.find((n) => n.type === 'chapter')!.id) : '');
+        setImportFormat('');
+        setImportFile(null);
+        setModalOpen(true);
+    };
+
+    const selectGrade = (value: string) => {
+        setGradeId(value);
+        setBookId('');
+        setChapterId('');
+        setForm({ ...form, catalog_node_id: '' });
+    };
+
+    const selectBook = (value: string) => {
+        setBookId(value);
+        setChapterId('');
+        setForm({ ...form, catalog_node_id: '' });
+    };
+
+    const selectChapter = (value: string) => {
+        setChapterId(value);
+        setForm({ ...form, catalog_node_id: value });
+    };
+
+    const grades = allNodes.filter((n) => n.type === 'grade');
+    const selectedGrade = grades.find((g) => g.id === Number(gradeId));
+    const books = selectedGrade?.children ?? [];
+    const selectedBook = books.find((b) => b.id === Number(bookId));
+    const chapters = selectedBook?.children ?? [];
+
     return (
         <div>
             <PageHeader
                 title="Exams"
                 description="Manage exams and assessments"
                 actions={canCreate && (
-                    <Button onClick={() => { setEditing(null); setForm(emptyForm); setModalOpen(true); }}>
+                    <Button onClick={openNew}>
                         <PlusIcon className="h-5 w-5" /> New Exam
                     </Button>
                 )}
@@ -186,19 +287,7 @@ export default function Exams() {
                                             {canEdit && (
                                                 <Button
                                                     variant="ghost" className="px-2 py-1"
-                                                    onClick={() => {
-                                                        setEditing(exam);
-                                                        setForm({
-                                                            catalog_node_id: String(exam.catalog_node_id),
-                                                            title: exam.title,
-                                                            description: exam.description ?? '',
-                                                            pass_percentage: exam.pass_percentage ?? 50,
-                                                            duration_minutes: exam.duration_minutes ?? 30,
-                                                            max_attempts: exam.max_attempts ?? 1,
-                                                            status: exam.status,
-                                                        });
-                                                        setModalOpen(true);
-                                                    }}
+                                                    onClick={() => openEdit(exam)}
                                                 >
                                                     <PencilSquareIcon className="h-4 w-4" />
                                                 </Button>
@@ -232,27 +321,62 @@ export default function Exams() {
             >
                 <form id="exam-form" onSubmit={handleSubmit} className="space-y-4">
                     <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-                    <Select label="Assign to Chapter / Node" value={form.catalog_node_id} onChange={(e) => setForm({ ...form, catalog_node_id: e.target.value })} required>
-                        <option value="">Select a chapter or node…</option>
-                        <optgroup label="Chapters (Recommended)">
-                            {flatOptions.filter((o) => o.type === 'chapter').map((o) => (
-                                <option key={o.id} value={o.id}>
-                                    📖 {o.path}
-                                </option>
-                            ))}
-                        </optgroup>
-                        <optgroup label="Other Nodes (Books / Grades / Categories)">
-                            {flatOptions.filter((o) => o.type !== 'chapter').map((o) => (
-                                <option key={o.id} value={o.id}>
-                                    📁 {o.path}
-                                </option>
-                            ))}
-                        </optgroup>
-                    </Select>
+                    <div>
+                        <p className="mb-1 text-sm font-medium text-gray-700">Assign to Chapter</p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <Select label="Grade" value={gradeId} onChange={(e) => selectGrade(e.target.value)}>
+                                <option value="">Select grade…</option>
+                                {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                            </Select>
+                            <Select label="Course" value={bookId} onChange={(e) => selectBook(e.target.value)} disabled={!gradeId}>
+                                <option value="">Select course…</option>
+                                {books.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </Select>
+                            <Select label="Chapter" value={chapterId} onChange={(e) => selectChapter(e.target.value)} disabled={!bookId} required>
+                                <option value="">Select chapter…</option>
+                                {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </Select>
+                        </div>
+                    </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <Input label="Pass %" type="number" min={0} max={100} value={form.pass_percentage} onChange={(e) => setForm({ ...form, pass_percentage: Number(e.target.value) })} />
                         <Input label="Duration (min)" type="number" min={1} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
                         <Input label="Max attempts" type="number" min={1} value={form.max_attempts} onChange={(e) => setForm({ ...form, max_attempts: Number(e.target.value) })} />
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <p className="mb-2 text-sm font-medium text-gray-700">Import questions from a file (optional)</p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <Select
+                                label="Format"
+                                value={importFormat}
+                                onChange={(e) => {
+                                    setImportFormat(e.target.value as 'pdf' | 'csv' | '');
+                                    setImportFile(null);
+                                    if (fileRef.current) fileRef.current.value = '';
+                                }}
+                            >
+                                <option value="">No import</option>
+                                <option value="csv">Text / CSV</option>
+                                <option value="pdf">PDF</option>
+                            </Select>
+                            {importFormat !== '' && (
+                                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-center hover:border-brand-400">
+                                    <span className="text-xs font-medium text-gray-600">
+                                        {importFile ? importFile.name : importFormat === 'pdf' ? 'Choose a PDF' : 'Choose a .csv / .txt file'}
+                                    </span>
+                                    <input
+                                        ref={fileRef}
+                                        type="file"
+                                        accept={importFormat === 'pdf' ? '.pdf,application/pdf' : '.csv,.txt,text/*'}
+                                        className="hidden"
+                                        onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                                    />
+                                </label>
+                            )}
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                            Format: numbered multiple-choice questions, options as <code className="rounded bg-gray-100 px-1">A) ...</code>, ending with <code className="rounded bg-gray-100 px-1">Answer: C</code>. Imported questions become part of the exam and reuse the existing question structure.
+                        </p>
                     </div>
                     <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                         <option value="draft">Draft</option>
