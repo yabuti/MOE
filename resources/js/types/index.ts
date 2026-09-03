@@ -5,6 +5,8 @@ export interface User {
     email_verified_at?: string;
     created_at?: string;
     updated_at?: string;
+    school_id?: number | null;
+    school?: { id: number; name: string; code?: string } | null;
     roles?: Role[];
     permissions?: string[];
 }
@@ -119,6 +121,33 @@ export interface School {
     email?: string;
     principal_name?: string;
     is_active?: boolean;
+    academic_year_month?: number | null;
+    academic_year_day?: number | null;
+}
+
+export interface Enrollment {
+    id: number;
+    user_id: number;
+    school_id: number;
+    catalog_node_id: number;
+    academic_year: string;
+    status: 'active' | 'passed' | 'failed';
+    started_at?: string | null;
+    ended_at?: string | null;
+    user?: { id: number; name: string; email: string };
+    school?: { id: number; name: string };
+    grade?: { id: number; name: string };
+}
+
+export interface RegisterStudentResult {
+    student: { id: number; name: string; email: string; grade?: string; academic_year?: string };
+    user: { id: number; name: string; email: string; grade?: string; academic_year?: string };
+    credentials: { username: string; password: string };
+    username: string;
+    password: string;
+    school: { id: number; name: string };
+    grade: { id: number; name: string };
+    academic_year: string;
 }
 
 export interface DashboardStats {

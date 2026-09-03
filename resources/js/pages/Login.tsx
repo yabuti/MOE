@@ -2,11 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getErrorMessage } from '../api/client';
 import { Button, Input } from '../components/ui';
 
 export default function Login() {
     const { login } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
     const location = useLocation();
     const [email, setEmail] = useState('');
@@ -19,9 +21,16 @@ export default function Login() {
         e.preventDefault();
         setLoading(true);
         try {
-            await login(email, password);
-            toast.success('Signed in successfully');
-            navigate(from, { replace: true });
+            const loggedInUser = await login(email, password);
+            toast.success(t('auth.loginSuccess'));
+
+            // Redirect based on role
+            const roles = loggedInUser.roles?.map((r) => r.name) ?? [];
+            if (roles.includes('school')) {
+                navigate('/school/dashboard', { replace: true });
+            } else {
+                navigate(from, { replace: true });
+            }
         } catch (err) {
             toast.error(getErrorMessage(err));
         } finally {
@@ -30,13 +39,13 @@ export default function Login() {
     };
 
     return (
-        <div className="flex min-h-screen bg-brand-50">
+        <div className="flex min-h-screen bg-brand-50 dark:bg-night-900">
             <ToastContainer position="top-right" autoClose={2500} hideProgressBar newestOnTop closeOnClick pauseOnHover={false} draggable />
 
             {/* Left half: image */}
             <div
                 className="hidden w-1/2 bg-cover bg-center lg:block"
-                style={{ backgroundImage: "url('/image.webp')" }}
+                style={{ backgroundImage: "url('/login.jfif')" }}
             />
 
             {/* Right half: login form */}
@@ -44,14 +53,14 @@ export default function Login() {
                 <div className="w-full max-w-md">
                     <div className="mb-8 text-center">
                         <img src="/Logo.png" alt="EduPlatform Logo" className="mx-auto mb-6 h-16 w-auto object-contain drop-shadow-sm" />
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Sign in to EduPlatform</h1>
-                        <p className="mt-2 text-sm text-gray-600">Please enter your credentials to continue</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{t('auth.loginTitle')}</h1>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{t('auth.loginSubtitle')}</p>
                     </div>
 
-                    <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+                    <div className="rounded-2xl border border-gray-200 dark:border-night-300 bg-white dark:bg-night-100 p-8 shadow-sm">
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <Input
-                                label="Email"
+                                label={t('auth.emailPlaceholder')}
                                 name="email"
                                 type="email"
                                 value={email}
@@ -61,7 +70,7 @@ export default function Login() {
                                 required
                             />
                             <Input
-                                label="Password"
+                                label={t('auth.passwordPlaceholder')}
                                 name="password"
                                 type="password"
                                 value={password}
@@ -71,13 +80,13 @@ export default function Login() {
                                 required
                             />
                             <Button type="submit" className="w-full" loading={loading}>
-                                Sign in
+                                {t('auth.signIn')}
                             </Button>
                         </form>
                     </div>
 
-                    <p className="mt-6 text-center text-xs text-gray-500">
-                        Demo: admin@moe.com / password
+                    <p className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
+                        {t('auth.demo')}
                     </p>
                 </div>
             </div>

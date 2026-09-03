@@ -15,6 +15,10 @@ class RoleController extends Controller
     {
         $roles = Role::with('permissions')->get();
 
+        foreach ($roles as $role) {
+            $role->setAttribute('permissions_count', $role->permissions->count());
+        }
+
         return response()->json([
             'roles' => $roles,
             'total' => $roles->count(),

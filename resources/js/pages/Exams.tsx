@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Pagination, Select, Table, Textarea, statusVariant } from '../components/ui';
 import type { Exam } from '../types';
 import { PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -35,6 +36,7 @@ const emptyForm = {
 
 export default function Exams() {
     const { hasPermission } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
     const [exams, setExams] = useState<ExamItem[]>([]);
     const [page, setPage] = useState(1);
@@ -126,11 +128,11 @@ export default function Exams() {
             let examId: number;
             if (editing) {
                 await api.put(`/exams/${editing.id}`, payload);
-                toast.success('Exam updated');
+                toast.success(t('exams.updated'));
                 examId = editing.id;
             } else {
                 const { data } = await api.post<{ exam: { id: number } }>('/exams', payload);
-                toast.success('Exam created');
+                toast.success(t('exams.created'));
                 examId = data.exam.id;
             }
 
@@ -161,7 +163,7 @@ export default function Exams() {
         setDeleting(true);
         try {
             await api.delete(`/exams/${deleteTarget.id}`);
-            toast.success('Exam deleted');
+            toast.success(t('exams.deleted'));
             setDeleteTarget(null);
             void loadExams(exams.length === 1 && page > 1 ? page - 1 : page);
         } catch (err) {
@@ -245,23 +247,23 @@ export default function Exams() {
     return (
         <div>
             <PageHeader
-                title="Exams"
-                description="Manage exams and assessments"
+                title={t('exams.title')}
+                description={t('exams.description')}
                 actions={canCreate && (
                     <Button onClick={openNew}>
-                        <PlusIcon className="h-5 w-5" /> New Exam
+                        <PlusIcon className="h-5 w-5" /> {t('exams.newExam')}
                     </Button>
                 )}
             />
 
             <Card>
                 {loading ? (
-                    <CardBody><div className="py-10 text-center text-sm text-gray-500">Loading exams…</div></CardBody>
+                    <CardBody><div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">{t('exams.loading')}</div></CardBody>
                 ) : exams.length === 0 ? (
-                    <CardBody><EmptyState title="No exams found" /></CardBody>
+                    <CardBody><EmptyState title={t('exams.noExams')} /></CardBody>
                 ) : (
                     <>
-                        <Table headers={['Title', 'Catalog Node', 'Status', 'Pass %', 'Duration', 'Questions', 'Actions']}>
+                        <Table headers={[t('exams.colTitle'), t('exams.colCatalogNode'), t('common.status'), t('exams.colPassPercent'), t('exams.colDuration'), t('exams.colQuestions'), t('common.actions')]}>
                             {exams.map((exam) => (
                                 <tr key={exam.id}>
                                     <td className="px-5 py-3">
@@ -269,20 +271,20 @@ export default function Exams() {
                                             {exam.title}
                                         </button>
                                     </td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">
-                                        <div className="font-medium text-gray-900">{exam.catalogNode?.name ?? exam.catalog_node_id}</div>
-                                        <div className="text-xs text-gray-400">
-                                            {flatOptions.find((o) => o.id === exam.catalog_node_id)?.path ?? 'Chapter Node'}
+                                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                        <div className="font-medium text-gray-900 dark:text-white">{exam.catalogNode?.name ?? exam.catalog_node_id}</div>
+                                        <div className="text-xs text-gray-400 dark:text-gray-500">
+                                            {flatOptions.find((o) => o.id === exam.catalog_node_id)?.path ?? t('exams.chapterNode')}
                                         </div>
                                     </td>
                                     <td className="px-5 py-3"><Badge variant={statusVariant(exam.status)}>{exam.status}</Badge></td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">{exam.pass_percentage ?? '—'}%</td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">{exam.duration_minutes ? `${exam.duration_minutes} min` : '—'}</td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">{exam.questions_count ?? 0}</td>
+                                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{exam.pass_percentage ?? '—'}%</td>
+                                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{exam.duration_minutes ? `${exam.duration_minutes} ${t('exams.min')}` : '—'}</td>
+                                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{exam.questions_count ?? 0}</td>
                                     <td className="whitespace-nowrap px-5 py-3">
                                         <div className="flex items-center gap-1">
                                             <Button variant="ghost" className="px-2 py-1 text-brand-600 hover:bg-brand-50" onClick={() => navigate(`/exams/${exam.id}/questions`)}>
-                                                Questions
+                                                {t('exams.colQuestions')}
                                             </Button>
                                             {canEdit && (
                                                 <Button
@@ -293,7 +295,7 @@ export default function Exams() {
                                                 </Button>
                                             )}
                                             {canDelete && (
-                                                <Button variant="ghost" className="px-2 py-1 text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(exam)}>
+                                                <Button variant="ghost" className="px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => setDeleteTarget(exam)}>
                                                     <TrashIcon className="h-4 w-4" />
                                                 </Button>
                                             )}
@@ -310,44 +312,44 @@ export default function Exams() {
             <Modal
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
-                title={editing ? 'Edit Exam' : 'New Exam'}
+                title={editing ? t('exams.editTitle') : t('exams.newTitle')}
                 size="lg"
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-                        <Button type="submit" form="exam-form" loading={saving}>{editing ? 'Save' : 'Create'}</Button>
+                        <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button>
+                        <Button type="submit" form="exam-form" loading={saving}>{editing ? t('common.save') : t('common.create')}</Button>
                     </>
                 }
             >
                 <form id="exam-form" onSubmit={handleSubmit} className="space-y-4">
-                    <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+                    <Input label={t('exams.colTitle')} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
                     <div>
-                        <p className="mb-1 text-sm font-medium text-gray-700">Assign to Chapter</p>
+                        <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-200">{t('exams.assignToChapter')}</p>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <Select label="Grade" value={gradeId} onChange={(e) => selectGrade(e.target.value)}>
-                                <option value="">Select grade…</option>
+                            <Select label={t('exams.grade')} value={gradeId} onChange={(e) => selectGrade(e.target.value)}>
+                                <option value="">{t('exams.selectGrade')}</option>
                                 {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </Select>
-                            <Select label="Course" value={bookId} onChange={(e) => selectBook(e.target.value)} disabled={!gradeId}>
-                                <option value="">Select course…</option>
+                            <Select label={t('exams.course')} value={bookId} onChange={(e) => selectBook(e.target.value)} disabled={!gradeId}>
+                                <option value="">{t('exams.selectCourse')}</option>
                                 {books.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                             </Select>
-                            <Select label="Chapter" value={chapterId} onChange={(e) => selectChapter(e.target.value)} disabled={!bookId} required>
-                                <option value="">Select chapter…</option>
+                            <Select label={t('exams.chapter')} value={chapterId} onChange={(e) => selectChapter(e.target.value)} disabled={!bookId} required>
+                                <option value="">{t('exams.selectChapter')}</option>
                                 {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </Select>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <Input label="Pass %" type="number" min={0} max={100} value={form.pass_percentage} onChange={(e) => setForm({ ...form, pass_percentage: Number(e.target.value) })} />
-                        <Input label="Duration (min)" type="number" min={1} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
-                        <Input label="Max attempts" type="number" min={1} value={form.max_attempts} onChange={(e) => setForm({ ...form, max_attempts: Number(e.target.value) })} />
+                        <Input label={t('exams.passPercent')} type="number" min={0} max={100} value={form.pass_percentage} onChange={(e) => setForm({ ...form, pass_percentage: Number(e.target.value) })} />
+                        <Input label={t('exams.durationMin')} type="number" min={1} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
+                        <Input label={t('exams.maxAttempts')} type="number" min={1} value={form.max_attempts} onChange={(e) => setForm({ ...form, max_attempts: Number(e.target.value) })} />
                     </div>
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                        <p className="mb-2 text-sm font-medium text-gray-700">Import questions from a file (optional)</p>
+                    <div className="rounded-lg border border-gray-200 dark:border-night-300 bg-gray-50 dark:bg-night-200 p-3">
+                        <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">{t('exams.importQuestions')}</p>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <Select
-                                label="Format"
+                                label={t('exams.format')}
                                 value={importFormat}
                                 onChange={(e) => {
                                     setImportFormat(e.target.value as 'pdf' | 'csv' | '');
@@ -355,14 +357,14 @@ export default function Exams() {
                                     if (fileRef.current) fileRef.current.value = '';
                                 }}
                             >
-                                <option value="">No import</option>
-                                <option value="csv">Text / CSV</option>
-                                <option value="pdf">PDF</option>
+                                <option value="">{t('exams.noImport')}</option>
+                                <option value="csv">{t('exams.textCsv')}</option>
+                                <option value="pdf">{t('exams.pdf')}</option>
                             </Select>
                             {importFormat !== '' && (
-                                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-center hover:border-brand-400">
-                                    <span className="text-xs font-medium text-gray-600">
-                                        {importFile ? importFile.name : importFormat === 'pdf' ? 'Choose a PDF' : 'Choose a .csv / .txt file'}
+                                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-night-300 bg-white dark:bg-night-100 px-3 py-2 text-center hover:border-brand-400">
+                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                        {importFile ? importFile.name : importFormat === 'pdf' ? t('exams.choosePdf') : t('exams.chooseCsv')}
                                     </span>
                                     <input
                                         ref={fileRef}
@@ -374,23 +376,23 @@ export default function Exams() {
                                 </label>
                             )}
                         </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            Format: numbered multiple-choice questions, options as <code className="rounded bg-gray-100 px-1">A) ...</code>, ending with <code className="rounded bg-gray-100 px-1">Answer: C</code>. Imported questions become part of the exam and reuse the existing question structure.
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            {t('exams.formatHint')}
                         </p>
                     </div>
-                    <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="archived">Archived</option>
+                    <Select label={t('common.status')} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                        <option value="draft">{t('common.draft')}</option>
+                        <option value="published">{t('common.published')}</option>
+                        <option value="archived">{t('common.archived')}</option>
                     </Select>
-                    <Textarea label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                    <Textarea label={t('common.description')} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 </form>
             </Modal>
 
             <ConfirmDialog
                 open={!!deleteTarget}
-                title="Delete exam"
-                message={`Are you sure you want to delete "${deleteTarget?.title}" and all its questions?`}
+                title={t('exams.deleteTitle')}
+                message={t('exams.deleteMessage', { name: deleteTarget?.title ?? '' })}
                 loading={deleting}
                 onConfirm={() => void handleDelete()}
                 onClose={() => setDeleteTarget(null)}

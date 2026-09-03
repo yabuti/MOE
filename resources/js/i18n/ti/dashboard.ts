@@ -1,0 +1,21 @@
+const dashboard: Record<string, string> = {
+    'users': 'ተጠቃሚዎች',
+    'schools': 'ትምህርት ቤቶች',
+    'books': 'መጽሐፍት',
+    'students': 'ተማሪዎች',
+    'title': 'ዳሽቦርድ',
+    'failedToLoad': 'ዳሽቦርድ መጫን አልተሳካም',
+    'greetingMorning': 'እንኳን ደህና ነጋህ',
+    'greetingAfternoon': 'እንኳን ደህና ነጋህ',
+    'greetingEvening': 'እንኳን ደህና ማታ',
+    'welcomeBack': 'እንኳን ተመለሱ፣ {name} 👋',
+    'signedInAs': 'እንታ እንደ {role} ገብተዋል። ዝን የመጨረሻ እንቅስቃሴ ኣሎ።',
+    'recentActivity': 'የቅርብ ጊዜ እንቅስቃሴ',
+    'events': '{count} ክስተቶች',
+    'noRecentActivity': 'የቅርብ ጊዜ እንቅስቃሴ የለም',
+    'system': 'ስርዓት',
+    'newestUsers': 'አዲስ ተጠቃሚዎች',
+    'joined': '{count} ተቀላቅለዋል',
+    'noUsersYet': 'ተጠቃሚዎች ኣልተገኘም',
+};
+export default dashboard;

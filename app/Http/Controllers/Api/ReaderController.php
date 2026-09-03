@@ -24,18 +24,30 @@ class ReaderController extends Controller
             return response()->json(['categories' => []]);
         }
 
-        $bookReadPercent = \App\Support\ProgressReport::bookReadPercent($request->user());
+        // A student only sees their CURRENT grade's books (and its parent category
+        // / school level). Admins, teachers and parents see every published grade.
+        $user = $request->user();
+        $currentGrade = \App\Support\EnrollmentService::currentGrade($user);
+        $studentOnlyCurrentGrade = $user->hasRole('student');
+
+        $bookReadPercent = \App\Support\ProgressReport::bookReadPercent($user);
 
         $categories = CatalogNode::where('catalog_node_type_id', $categoryType->id)
             ->where('status', 'published')
             ->orderBy('sort_order')
             ->get()
-            ->map(function ($category) use ($gradeType, $bookType, $bookReadPercent) {
-                $grades = CatalogNode::where('parent_id', $category->id)
+            ->map(function ($category) use ($gradeType, $bookType, $bookReadPercent, $currentGrade, $studentOnlyCurrentGrade) {
+                $gradeQuery = CatalogNode::where('parent_id', $category->id)
                     ->where('catalog_node_type_id', $gradeType->id)
                     ->where('status', 'published')
-                    ->orderBy('sort_order')
-                    ->get()
+                    ->orderBy('sort_order');
+
+                // For a student, show only their current grade within this category.
+                if ($studentOnlyCurrentGrade && $currentGrade) {
+                    $gradeQuery->where('id', $currentGrade->id);
+                }
+
+                $grades = $gradeQuery->get()
                     ->map(function ($grade) use ($bookType, $bookReadPercent) {
                         $books = CatalogNode::where('parent_id', $grade->id)
                             ->where('catalog_node_type_id', $bookType->id)
@@ -96,6 +108,11 @@ class ReaderController extends Controller
         if ($book->status !== 'published') {
             return response()->json(['message' => 'This book is not published.'], 404);
         }
+
+        // A book outside the student's current grade is a PAST-YEAR book: the
+        // student may read the story and see the exam + answers, but cannot take it.
+        $isCurrentGrade = \App\Support\EnrollmentService::bookIsInCurrentGrade($user, $book);
+        $readOnly = $user->hasRole('student') && ! $isCurrentGrade;
 
         // Fetch passed exams for this user
         $passedExamIds = \App\Models\ExamAttempt::where('user_id', $user->id)
@@ -160,6 +177,7 @@ class ReaderController extends Controller
                     'duration_minutes' => $exam->duration_minutes ?? 30,
                     'max_attempts' => $exam->max_attempts ?? 3,
                     'passed' => $examPassed,
+                    'read_only' => $readOnly,
                     'best_attempt' => $bestAttempt ? [
                         'score' => $bestAttempt->score,
                         'percentage' => $bestAttempt->percentage,
@@ -172,6 +190,10 @@ class ReaderController extends Controller
                         'options' => $q->options,
                         'points' => $q->points ?? 1,
                         'position' => $q->position,
+                        // For read-only (past year) exams, expose the correct
+                        // answer so the student can review it.
+                        'correct_answer' => $readOnly ? $q->correct_answer : null,
+                        'correct_answers' => $readOnly ? $q->correct_answers : null,
                     ]),
                 ] : null,
             ];
@@ -201,6 +223,19 @@ class ReaderController extends Controller
     public function submitExam(Request $request, \App\Models\Exam $exam): JsonResponse
     {
         $user = $request->user();
+
+        // Prevent submitting exams for books outside the student's current grade
+        // (past-year books are read-only: view story + answers only).
+        if ($user->hasRole('student')) {
+            $chapter = $exam->catalog_node_id ? CatalogNode::find($exam->catalog_node_id) : null;
+            $book = $chapter?->parent;
+            if ($book && ! \App\Support\EnrollmentService::bookIsInCurrentGrade($user, $book)) {
+                return response()->json([
+                    'message' => 'This exam was from a previous grade and cannot be taken again. You can review the answers only.',
+                ], 403);
+            }
+        }
+
         $validated = $request->validate([
             'answers' => ['sometimes', 'array'],
         ]);

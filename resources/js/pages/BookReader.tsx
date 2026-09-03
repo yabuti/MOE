@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { Button, Card, CardBody, Modal } from '../components/ui';
+import { useLanguage } from '../context/LanguageContext';
 import {
     ArrowLeftIcon,
     Bars3BottomLeftIcon,
@@ -36,6 +37,8 @@ interface QuestionItem {
     type: 'multiple_choice' | 'true_false' | 'short_answer' | 'fill_blank';
     options?: string[];
     points: number;
+    correct_answer?: string | null;
+    correct_answers?: string[] | null;
 }
 
 interface ExamData {
@@ -46,6 +49,7 @@ interface ExamData {
     duration_minutes: number;
     max_attempts: number;
     passed: boolean;
+    read_only?: boolean;
     best_attempt?: {
         score: number;
         percentage: number;
@@ -108,6 +112,7 @@ function formatChemicalFormulas(text: string): string {
 
 /** Render paragraphs with specialized Callout Box styling for Exercises, Steps, Checking, and Notes */
 function ParagraphRenderer({ text }: { text: string }) {
+    const { t } = useLanguage();
     const formattedText = formatChemicalFormulas(text);
 
     // Interactive answer checker state for exercises
@@ -142,12 +147,12 @@ function ParagraphRenderer({ text }: { text: string }) {
 
     if (isStep) {
         return (
-            <div className="my-4 rounded-2xl border border-blue-200 bg-blue-50/60 p-4 sm:p-5 shadow-xs">
-                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700">
+            <div className="my-4 rounded-2xl border border-blue-200 bg-blue-50/60 p-4 sm:p-5 shadow-xs dark:border-blue-900 dark:bg-blue-950/40">
+                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]">⚗️</span>
-                    Step-by-step Procedure / Reaction Balance
+                    {t('bookReader.stepProcedure')}
                 </div>
-                <p className="font-mono text-sm leading-relaxed text-blue-950 sm:text-base whitespace-pre-wrap">
+                <p className="font-mono text-sm leading-relaxed text-blue-950 sm:text-base whitespace-pre-wrap dark:text-blue-100">
                     {formattedText}
                 </p>
             </div>
@@ -156,12 +161,12 @@ function ParagraphRenderer({ text }: { text: string }) {
 
     if (isChecking) {
         return (
-            <div className="my-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5 shadow-xs">
-                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-700">
+            <div className="my-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5 shadow-xs dark:border-emerald-900 dark:bg-emerald-950/40">
+                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px]">✓</span>
-                    Verification & Balance Check
+                    {t('bookReader.verificationCheck')}
                 </div>
-                <p className="text-base leading-relaxed text-emerald-950 sm:text-lg whitespace-pre-wrap">
+                <p className="text-base leading-relaxed text-emerald-950 sm:text-lg whitespace-pre-wrap dark:text-emerald-100">
                     {formattedText}
                 </p>
             </div>
@@ -170,26 +175,26 @@ function ParagraphRenderer({ text }: { text: string }) {
 
     if (isExercise) {
         return (
-            <div className="my-5 rounded-2xl border-2 border-indigo-200 bg-indigo-50/50 p-5 sm:p-6 shadow-xs">
-                <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-700">
+            <div className="my-5 rounded-2xl border-2 border-indigo-200 bg-indigo-50/50 p-5 sm:p-6 shadow-xs dark:border-indigo-900 dark:bg-indigo-950/40">
+                <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
                     <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-600 text-white text-xs">✏️</span>
-                    Exercise / Interactive Question
+                    {t('bookReader.exercise')}
                 </div>
-                <p className="text-base font-semibold leading-relaxed text-indigo-950 sm:text-lg whitespace-pre-wrap">
+                <p className="text-base font-semibold leading-relaxed text-indigo-950 sm:text-lg whitespace-pre-wrap dark:text-indigo-100">
                     {formattedText}
                 </p>
 
                 {/* Interactive Answering Area */}
-                <div className="mt-4 border-t border-indigo-200/60 pt-4">
+                <div className="mt-4 border-t border-indigo-200/60 pt-4 dark:border-indigo-900/60">
                     {!checked ? (
                         <div className="space-y-3">
-                            <label className="block text-xs font-medium text-indigo-900">Type your answer below:</label>
+                            <label className="block text-xs font-medium text-indigo-900 dark:text-indigo-200">{t('bookReader.typeAnswer')}:</label>
                             <textarea
                                 value={userAnswer}
                                 onChange={(e) => setUserAnswer(e.target.value)}
-                                placeholder="Write your chemical equation, numerical calculation, or concept answer here..."
+                                placeholder={t('bookReader.answerPlaceholder')}
                                 rows={2}
-                                className="w-full rounded-xl border border-indigo-200 bg-white p-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                className="w-full rounded-xl border border-indigo-200 bg-white p-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-indigo-900 dark:bg-night-100 dark:text-white"
                             />
                             <div className="flex justify-end">
                                 <Button
@@ -198,27 +203,27 @@ function ParagraphRenderer({ text }: { text: string }) {
                                     disabled={!userAnswer.trim()}
                                     onClick={handleCheckAnswer}
                                 >
-                                    Check Answer
+                                    {t('bookReader.checkAnswer')}
                                 </Button>
                             </div>
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {isCorrect ? (
-                                <div className="rounded-xl border border-emerald-300 bg-emerald-100/80 p-3.5 text-sm text-emerald-950">
-                                    <div className="flex items-center gap-2 font-bold text-emerald-800">
-                                        <span>✓</span> Correct! Excellent understanding.
+                                <div className="rounded-xl border border-emerald-300 bg-emerald-100/80 p-3.5 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-100">
+                                    <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
+                                        <span>✓</span> {t('bookReader.correct')}
                                     </div>
-                                    <p className="mt-1 text-xs text-emerald-900">Your answer matches the expected chapter concept.</p>
+                                    <p className="mt-1 text-xs text-emerald-900 dark:text-emerald-200">{t('bookReader.correctHint')}</p>
                                 </div>
                             ) : (
-                                <div className="rounded-xl border border-amber-300 bg-amber-100/80 p-3.5 text-sm text-amber-950">
-                                    <div className="flex items-center gap-2 font-bold text-amber-800">
-                                        <span>✗</span> Incorrect / Needs Review
+                                <div className="rounded-xl border border-amber-300 bg-amber-100/80 p-3.5 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
+                                    <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                                        <span>✗</span> {t('bookReader.incorrect')}
                                     </div>
-                                    <div className="mt-2 text-xs text-amber-900 border-t border-amber-200/80 pt-2">
-                                        <p className="font-semibold text-amber-950 mb-1">Expected Chapter Concept / Solution:</p>
-                                        <p className="italic bg-white/60 p-2 rounded-lg border border-amber-200">{formattedText}</p>
+                                    <div className="mt-2 text-xs text-amber-900 border-t border-amber-200/80 pt-2 dark:text-amber-200 dark:border-amber-900/80">
+                                        <p className="font-semibold text-amber-950 mb-1 dark:text-amber-100">{t('bookReader.expectedConcept')}</p>
+                                        <p className="italic bg-white/60 p-2 rounded-lg border border-amber-200 dark:bg-night-100/60 dark:border-amber-900">{formattedText}</p>
                                     </div>
                                 </div>
                             )}
@@ -229,7 +234,7 @@ function ParagraphRenderer({ text }: { text: string }) {
                                     className="text-xs px-3 py-1.5"
                                     onClick={() => { setChecked(false); setUserAnswer(''); }}
                                 >
-                                    Try Again
+                                    {t('bookReader.tryAgain')}
                                 </Button>
                             </div>
                         </div>
@@ -241,12 +246,12 @@ function ParagraphRenderer({ text }: { text: string }) {
 
     if (isExample) {
         return (
-            <div className="my-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5 shadow-xs">
-                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700">
+            <div className="my-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5 shadow-xs dark:border-amber-900 dark:bg-amber-950/40">
+                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-[10px]">💡</span>
-                    Example / Solution Note
+                    {t('bookReader.exampleNote')}
                 </div>
-                <p className="text-base leading-relaxed text-amber-950 sm:text-lg whitespace-pre-wrap">
+                <p className="text-base leading-relaxed text-amber-950 sm:text-lg whitespace-pre-wrap dark:text-amber-100">
                     {formattedText}
                 </p>
             </div>
@@ -254,7 +259,7 @@ function ParagraphRenderer({ text }: { text: string }) {
     }
 
     return (
-        <p className="whitespace-pre-wrap text-base leading-relaxed text-gray-800 sm:text-lg sm:leading-8">
+        <p className="whitespace-pre-wrap text-base leading-relaxed text-gray-800 sm:text-lg sm:leading-8 dark:text-gray-100">
             {formattedText}
         </p>
     );
@@ -262,6 +267,7 @@ function ParagraphRenderer({ text }: { text: string }) {
 
 /** Render a single content block with responsive device layout */
 function BlockRenderer({ block }: { block: ContentBlockItem }) {
+    const { t } = useLanguage();
     const url = resolveUrl(block);
 
     if (block.type === 'text') {
@@ -273,7 +279,7 @@ function BlockRenderer({ block }: { block: ContentBlockItem }) {
         return (
             <div className="reader-block my-6">
                 {block.title && (
-                    <h3 className="mb-4 text-xl font-bold text-gray-900 sm:text-2xl">{block.title}</h3>
+                    <h3 className="mb-4 text-xl font-bold text-gray-900 sm:text-2xl dark:text-white">{block.title}</h3>
                 )}
                 {paragraphs.length > 0 ? (
                     <div className="space-y-4">
@@ -292,28 +298,28 @@ function BlockRenderer({ block }: { block: ContentBlockItem }) {
 
     if (block.type === 'pdf' && url) {
         return (
-            <div className="reader-block my-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="reader-block my-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-night-300 dark:bg-night-100">
                 {block.title && (
-                    <div className="border-b border-gray-100 px-4 py-3 bg-gray-50/50">
-                        <h3 className="text-base font-semibold text-gray-900">{block.title}</h3>
+                    <div className="border-b border-gray-100 px-4 py-3 bg-gray-50/50 dark:border-night-300 dark:bg-night-200/50">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{block.title}</h3>
                     </div>
                 )}
-                <div className="relative aspect-[4/3] w-full sm:aspect-[16/10] bg-gray-100">
+                <div className="relative aspect-[4/3] w-full sm:aspect-[16/10] bg-gray-100 dark:bg-night-200">
                     <iframe
                         src={`${url}#toolbar=0`}
                         className="h-full w-full border-0"
-                        title={block.title ?? 'PDF Document'}
+                        title={block.title ?? t('bookReader.pdfDocument')}
                     />
                 </div>
-                <div className="flex items-center justify-between bg-gray-50/80 px-4 py-2.5 text-xs text-gray-600 border-t border-gray-100">
-                    <span className="font-medium">📄 PDF Document</span>
+                <div className="flex items-center justify-between bg-gray-50/80 px-4 py-2.5 text-xs text-gray-600 border-t border-gray-100 dark:bg-night-200/80 dark:text-gray-300 dark:border-night-300">
+                    <span className="font-medium">📄 {t('bookReader.pdfDocument')}</span>
                     <a
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+                        className="font-semibold text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
                     >
-                        View / Download Full PDF ↗
+                        {t('bookReader.viewDownloadPdf')}
                     </a>
                 </div>
             </div>
@@ -325,12 +331,12 @@ function BlockRenderer({ block }: { block: ContentBlockItem }) {
             <figure className="reader-block my-6">
                 <img
                     src={url}
-                    alt={block.title ?? 'Textbook illustration'}
-                    className="mx-auto max-h-[75vh] w-full max-w-full rounded-2xl border border-gray-100 object-contain shadow-sm"
+                    alt={block.title ?? t('bookReader.imageAlt')}
+                    className="mx-auto max-h-[75vh] w-full max-w-full rounded-2xl border border-gray-100 object-contain shadow-sm dark:border-night-300"
                     loading="lazy"
                 />
                 {block.title && (
-                    <figcaption className="mt-2 text-center text-xs text-gray-500 italic sm:text-sm">
+                    <figcaption className="mt-2 text-center text-xs text-gray-500 italic sm:text-sm dark:text-gray-400">
                         {block.title}
                     </figcaption>
                 )}
@@ -342,7 +348,7 @@ function BlockRenderer({ block }: { block: ContentBlockItem }) {
         return (
             <div className="reader-block my-6">
                 {block.title && (
-                    <p className="mb-2 text-sm font-semibold text-gray-800 sm:text-base">{block.title}</p>
+                    <p className="mb-2 text-sm font-semibold text-gray-800 sm:text-base dark:text-gray-100">{block.title}</p>
                 )}
                 <div className="overflow-hidden rounded-2xl bg-black shadow-sm">
                     <video src={url} controls className="aspect-video w-full max-w-full" />
@@ -353,9 +359,9 @@ function BlockRenderer({ block }: { block: ContentBlockItem }) {
 
     if (block.type === 'audio' && url) {
         return (
-            <div className="reader-block my-6 rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+            <div className="reader-block my-6 rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-night-300 dark:bg-night-200/50">
                 {block.title && (
-                    <p className="mb-2 text-sm font-semibold text-gray-800">{block.title}</p>
+                    <p className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-100">{block.title}</p>
                 )}
                 <audio src={url} controls className="w-full" />
             </div>
@@ -366,8 +372,8 @@ function BlockRenderer({ block }: { block: ContentBlockItem }) {
     if (block.title || block.content) {
         return (
             <div className="reader-block my-6">
-                {block.title && <h4 className="mb-2 font-bold text-gray-900">{block.title}</h4>}
-                {block.content && <p className="text-base text-gray-700 sm:text-lg">{block.content}</p>}
+                {block.title && <h4 className="mb-2 font-bold text-gray-900 dark:text-white">{block.title}</h4>}
+                {block.content && <p className="text-base text-gray-700 sm:text-lg dark:text-gray-200">{block.content}</p>}
             </div>
         );
     }
@@ -385,6 +391,7 @@ function ChapterExamCard({
     chapterName: string;
     onSuccess: () => void;
 }) {
+    const { t } = useLanguage();
     const [modalOpen, setModalOpen] = useState(false);
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [submitting, setSubmitting] = useState(false);
@@ -409,10 +416,10 @@ function ChapterExamCard({
             const { data } = await api.post(`/reader/exams/${exam.id}/submit`, { answers });
             setResult(data);
             if (data.passed) {
-                toast.success('Congratulations! You passed the chapter exam and unlocked the next chapter!');
+                toast.success(t('bookReader.examPassedToast'));
                 onSuccess();
             } else {
-                toast.warning(`Exam submitted: ${data.percentage}%. You need ${data.pass_percentage}% to pass.`);
+                toast.warning(t('bookReader.examSubmittedToast', { percent: data.percentage, pass: data.pass_percentage }));
             }
         } catch (err) {
             toast.error(getErrorMessage(err));
@@ -422,23 +429,28 @@ function ChapterExamCard({
     };
 
     return (
-        <div className="my-10 rounded-2xl border-2 border-brand-200 bg-gradient-to-br from-brand-50/60 to-purple-50/40 p-6 shadow-sm">
+        <div className="my-10 rounded-2xl border-2 border-brand-200 bg-gradient-to-br from-brand-50/60 to-purple-50/40 p-6 shadow-sm dark:border-brand-900 dark:from-brand-950/40 dark:to-purple-950/30">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white uppercase tracking-wider">
-                        🎓 End-of-Chapter Assessment
+                        🎓 {t('bookReader.endChapterAssessment')}
                     </span>
-                    <h3 className="mt-2 text-xl font-bold text-gray-900">{exam.title}</h3>
-                    <p className="mt-1 text-sm text-gray-600">
-                        {exam.description || `Complete this exam to verify your concepts for ${chapterName}. Pass mark: ${exam.pass_percentage}%.`}
+                    {exam.read_only && (
+                        <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-gray-600 px-3 py-1 text-xs font-bold text-white uppercase tracking-wider">
+                            📖 {t('bookReader.pastYearReviewOnly')}
+                        </span>
+                    )}
+                    <h3 className="mt-2 text-xl font-bold text-gray-900 dark:text-white">{exam.title}</h3>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                        {exam.description || t('bookReader.examDescription', { chapter: chapterName, percent: exam.pass_percentage })}
                     </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-gray-500">
-                        <span>📝 {exam.questions.length} Questions</span>
-                        <span>⏱️ {exam.duration_minutes} min</span>
-                        <span>🎯 Pass: {exam.pass_percentage}%</span>
+                    <div className="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <span>📝 {t('bookReader.questions', { count: exam.questions.length })}</span>
+                        <span>⏱️ {t('bookReader.minutes', { minutes: exam.duration_minutes })}</span>
+                        <span>🎯 {t('bookReader.pass', { percent: exam.pass_percentage })}</span>
                         {exam.passed && (
-                            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 font-bold text-emerald-800">
-                                ✓ PASSED ({exam.best_attempt?.percentage ?? 100}%)
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 font-bold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                                ✓ {t('bookReader.passed', { percent: exam.best_attempt?.percentage ?? 100 })}
                             </span>
                         )}
                     </div>
@@ -449,7 +461,7 @@ function ChapterExamCard({
                         variant={exam.passed ? 'success' : 'primary'}
                         onClick={() => { setResult(null); setAnswers({}); setModalOpen(true); }}
                     >
-                        {exam.passed ? 'Retake Exam' : 'Take Chapter Exam →'}
+                        {exam.read_only ? `👁 ${t('bookReader.viewAnswers')}` : exam.passed ? t('bookReader.retakeExam') : t('bookReader.takeExam')}
                     </Button>
                 </div>
             </div>
@@ -458,25 +470,69 @@ function ChapterExamCard({
             <Modal
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
-                title={`End-of-Chapter Exam: ${exam.title}`}
+                title={exam.read_only ? t('bookReader.reviewAnswersTitle', { title: exam.title }) : t('bookReader.endChapterExamTitle', { title: exam.title })}
                 size="lg"
             >
-                {!result ? (
+                {exam.read_only ? (
                     <div className="space-y-6 py-2">
-                        <div className="rounded-xl bg-brand-50 p-4 text-xs text-brand-900 border border-brand-200">
-                            Answer all questions below carefully. You must score <strong>{exam.pass_percentage}%</strong> or higher to pass and unlock the next chapter.
+                        <div className="rounded-xl bg-gray-50 p-4 text-xs text-gray-700 border border-gray-200 dark:bg-night-200 dark:text-gray-200 dark:border-night-300">
+                            <span className="font-semibold">📖 {t('bookReader.pastYearReviewOnly')}</span> — {t('bookReader.pastYearNote')}
                         </div>
 
                         {exam.questions.map((q, qIdx) => (
-                            <div key={q.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
-                                <p className="font-semibold text-sm text-gray-900">
+                            <div key={q.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-2 dark:border-night-300 dark:bg-night-100">
+                                <p className="font-semibold text-sm text-gray-900 dark:text-white">
+                                    {qIdx + 1}. {q.question} ({q.points} pt)
+                                </p>
+                                {q.type === 'multiple_choice' && q.options && (
+                                    <div className="space-y-1">
+                                        {q.options.map((opt, oIdx) => {
+                                            const isCorrect = q.correct_answer === opt;
+                                            return (
+                                                <div key={oIdx} className={`rounded-lg px-3 py-2 text-sm border ${isCorrect ? 'border-emerald-300 bg-emerald-50 font-semibold text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200' : 'border-gray-100 text-gray-500 dark:border-night-300 dark:text-gray-400'}`}>
+                                                    {isCorrect ? '✓ ' : ''}{opt}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                {q.type === 'true_false' && (
+                                    <div className="flex items-center gap-4">
+                                        {[t('bookReader.true'), t('bookReader.false')].map((opt) => (
+                                            <div key={opt} className={`rounded-lg px-4 py-2 text-sm font-medium border ${q.correct_answer === opt ? 'border-emerald-300 bg-emerald-50 text-emerald-900 font-semibold dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200' : 'border-gray-100 text-gray-500 dark:border-night-300 dark:text-gray-400'}`}>
+                                                {q.correct_answer === opt ? '✓ ' : ''}{opt}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {(q.type === 'short_answer' || q.type === 'fill_blank') && q.correct_answer && (
+                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+                                        <span className="font-medium">{t('bookReader.correctAnswer')}</span> {q.correct_answer}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        <div className="flex justify-end border-t border-gray-200 pt-4 dark:border-night-300">
+                            <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('bookReader.close')}</Button>
+                        </div>
+                    </div>
+                ) : !result ? (
+                    <div className="space-y-6 py-2">
+                        <div className="rounded-xl bg-brand-50 p-4 text-xs text-brand-900 border border-brand-200 dark:bg-brand-950/50 dark:text-brand-200 dark:border-brand-900">
+                            {t('bookReader.examInstructions', { percent: exam.pass_percentage })}
+                        </div>
+
+                        {exam.questions.map((q, qIdx) => (
+                            <div key={q.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3 dark:border-night-300 dark:bg-night-100">
+                                <p className="font-semibold text-sm text-gray-900 dark:text-white">
                                     {qIdx + 1}. {q.question} ({q.points} pt)
                                 </p>
 
                                 {q.type === 'multiple_choice' && q.options && (
                                     <div className="space-y-2">
                                         {q.options.map((opt, oIdx) => (
-                                            <label key={oIdx} className="flex items-center gap-3 rounded-lg border border-gray-100 p-2.5 hover:bg-gray-50 cursor-pointer text-sm">
+                                            <label key={oIdx} className="flex items-center gap-3 rounded-lg border border-gray-100 p-2.5 hover:bg-gray-50 cursor-pointer text-sm dark:border-night-300 dark:hover:bg-night-200">
                                                 <input
                                                     type="radio"
                                                     name={`q_${q.id}`}
@@ -493,8 +549,8 @@ function ChapterExamCard({
 
                                 {q.type === 'true_false' && (
                                     <div className="flex items-center gap-4">
-                                        {['True', 'False'].map((opt) => (
-                                            <label key={opt} className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm font-medium">
+                                        {[t('bookReader.true'), t('bookReader.false')].map((opt) => (
+                                            <label key={opt} className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm font-medium dark:border-night-300 dark:hover:bg-night-200">
                                                 <input
                                                     type="radio"
                                                     name={`q_${q.id}`}
@@ -514,50 +570,50 @@ function ChapterExamCard({
                                         type="text"
                                         value={answers[q.id] ?? ''}
                                         onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                                        placeholder="Type your answer..."
-                                        className="w-full rounded-xl border border-gray-300 p-2.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                                        placeholder={t('bookReader.typeAnswerPlaceholder')}
+                                        className="w-full rounded-xl border border-gray-300 p-2.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-night-300 dark:bg-night-100 dark:text-white"
                                     />
                                 )}
                             </div>
                         ))}
 
-                        <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
-                            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-                            <Button variant="primary" loading={submitting} onClick={handleSubmitExam}>Submit Exam</Button>
+                        <div className="flex justify-end gap-2 border-t border-gray-200 pt-4 dark:border-night-300">
+                            <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('bookReader.cancel')}</Button>
+                            <Button variant="primary" loading={submitting} onClick={handleSubmitExam}>{t('bookReader.submitExam')}</Button>
                         </div>
                     </div>
                 ) : (
                     /* Exam Result Screen */
                     <div className="space-y-6 py-2">
-                        <div className={`rounded-2xl p-6 text-center border ${result.passed ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-amber-50 border-amber-200 text-amber-950'}`}>
+                        <div className={`rounded-2xl p-6 text-center border ${result.passed ? 'bg-emerald-50 border-emerald-200 text-emerald-950 dark:bg-emerald-950/50 dark:border-emerald-800 dark:text-emerald-100' : 'bg-amber-50 border-amber-200 text-amber-950 dark:bg-amber-950/50 dark:border-amber-900 dark:text-amber-100'}`}>
                             <div className="text-4xl mb-2">{result.passed ? '🎉' : '⚠️'}</div>
-                            <h3 className="text-2xl font-bold">{result.passed ? 'Exam Passed!' : 'Needs Improvement'}</h3>
+                            <h3 className="text-2xl font-bold">{result.passed ? t('bookReader.examPassed') : t('bookReader.needsImprovement')}</h3>
                             <p className="mt-1 text-sm">
-                                You scored <strong>{result.percentage}%</strong> ({result.score}/{result.total_points} points). Pass requirement: {result.pass_percentage}%.
+                                {t('bookReader.scoreSummary', { percent: result.percentage, score: result.score, total: result.total_points, pass: result.pass_percentage })}
                             </p>
                             {result.passed && (
-                                <p className="mt-2 text-xs font-semibold text-emerald-800">
-                                    ✓ Next chapter is now UNLOCKED!
+                                <p className="mt-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                                    ✓ {t('bookReader.nextChapterUnlocked')}
                                 </p>
                             )}
                         </div>
 
                         {/* Breakdown */}
                         <div className="space-y-3">
-                            <h4 className="font-bold text-sm text-gray-900">Question Breakdown:</h4>
+                            <h4 className="font-bold text-sm text-gray-900 dark:text-white">{t('bookReader.questionBreakdown')}:</h4>
                             {result.breakdown.map((item, idx) => (
-                                <div key={idx} className={`rounded-xl border p-3.5 text-xs ${item.is_correct ? 'border-emerald-200 bg-emerald-50/40' : 'border-red-200 bg-red-50/40'}`}>
-                                    <p className="font-semibold text-gray-900 mb-1">{idx + 1}. {item.question}</p>
-                                    <p className="text-gray-700">Your answer: <strong>{item.user_answer || 'None'}</strong></p>
+                                <div key={idx} className={`rounded-xl border p-3.5 text-xs ${item.is_correct ? 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-800 dark:bg-emerald-950/30' : 'border-red-200 bg-red-50/40 dark:border-red-900 dark:bg-red-950/30'}`}>
+                                    <p className="font-semibold text-gray-900 mb-1 dark:text-white">{idx + 1}. {item.question}</p>
+                                    <p className="text-gray-700 dark:text-gray-200">{t('bookReader.yourAnswer')} <strong>{item.user_answer || t('bookReader.none')}</strong></p>
                                     {!item.is_correct && (
-                                        <p className="text-emerald-800 font-semibold mt-1">Correct solution: {item.correct_answer}</p>
+                                        <p className="text-emerald-800 font-semibold mt-1 dark:text-emerald-300">{t('bookReader.correctSolution')}: {item.correct_answer}</p>
                                     )}
                                 </div>
                             ))}
                         </div>
 
-                        <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
-                            <Button variant="secondary" onClick={() => setModalOpen(false)}>Close</Button>
+                        <div className="flex justify-end gap-2 border-t border-gray-200 pt-4 dark:border-night-300">
+                            <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('bookReader.close')}</Button>
                         </div>
                     </div>
                 )}
@@ -585,6 +641,7 @@ function ChapterAudioPlayer({
     currentChapter: number;
     onListen: (chapterId: number) => void;
 }) {
+    const { t } = useLanguage();
     const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
     const [chapterId, setChapterId] = useState<number>(chapters[currentChapter]?.id ?? chapters[0]?.id ?? 0);
     const [playingId, setPlayingId] = useState<number | null>(null);
@@ -618,7 +675,7 @@ function ChapterAudioPlayer({
 
     const play = () => {
         if (!supported) {
-            toast.error('Audio is not supported in this browser.');
+            toast.error(t('bookReader.audioNotSupported'));
             return;
         }
         stop();
@@ -626,7 +683,7 @@ function ChapterAudioPlayer({
         if (!chapter) return;
         const text = buildChapterText(chapter);
         if (!text.trim()) {
-            toast.warning('This chapter has no readable text.');
+            toast.warning(t('bookReader.chapterNoReadableText'));
             return;
         }
         const utterance = new SpeechSynthesisUtterance(text);
@@ -646,16 +703,16 @@ function ChapterAudioPlayer({
     };
 
     return (
-        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-3">
-            <span className="text-sm font-bold text-brand-900">🎧 Listen</span>
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-3 dark:border-brand-900 dark:bg-brand-950/40">
+            <span className="text-sm font-bold text-brand-900 dark:text-brand-200">🎧 {t('bookReader.listen')}</span>
             <select
                 value={chapterId}
                 onChange={(e) => setChapterId(Number(e.target.value))}
-                className="min-w-0 max-w-[260px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-brand-500"
+                className="min-w-0 max-w-[260px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-brand-500 dark:border-night-300 dark:bg-night-100 dark:text-gray-200"
             >
                 {chapters.map((c, i) => (
                     <option key={c.id} value={c.id}>
-                        Chapter {i + 1}: {c.name}
+                        {t('bookReader.chapter')} {i + 1}: {c.name}
                     </option>
                 ))}
             </select>
@@ -663,9 +720,9 @@ function ChapterAudioPlayer({
                 <select
                     value={voiceUri}
                     onChange={(e) => setVoiceUri(e.target.value)}
-                    className="min-w-0 max-w-[200px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-brand-500"
+                    className="min-w-0 max-w-[200px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-brand-500 dark:border-night-300 dark:bg-night-100 dark:text-gray-200"
                 >
-                    <option value="">Auto voice</option>
+                    <option value="">{t('bookReader.autoVoice')}</option>
                     {voices.map((v) => (
                         <option key={v.voiceURI} value={v.voiceURI}>
                             {v.name}
@@ -678,13 +735,13 @@ function ChapterAudioPlayer({
                     onClick={play}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700"
                 >
-                    {playingId != null ? '⏳ Playing…' : '▶ Play'}
+                    {playingId != null ? `⏳ ${t('bookReader.playing')}` : `▶ ${t('bookReader.play')}`}
                 </button>
                 <button
                     onClick={stop}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-night-300 dark:bg-night-100 dark:text-gray-200 dark:hover:bg-night-200"
                 >
-                    ⏹ Stop
+                    ⏹ {t('bookReader.stop')}
                 </button>
             </div>
         </div>
@@ -694,6 +751,7 @@ function ChapterAudioPlayer({
 export default function BookReader() {
     const { bookId } = useParams();
     const navigate = useNavigate();
+    const { t } = useLanguage();
 
     const [book, setBook] = useState<BookData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -815,7 +873,7 @@ export default function BookReader() {
             <div className="flex min-h-[60vh] items-center justify-center">
                 <div className="text-center">
                     <BookOpenIcon className="mx-auto h-12 w-12 animate-pulse text-brand-400" />
-                    <p className="mt-3 text-sm text-gray-500">Loading book…</p>
+                    <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">{t('bookReader.loadingBook')}</p>
                 </div>
             </div>
         );
@@ -825,10 +883,10 @@ export default function BookReader() {
         return (
             <div className="flex min-h-[60vh] items-center justify-center">
                 <div className="text-center">
-                    <BookOpenIcon className="mx-auto h-12 w-12 text-gray-300" />
-                    <h3 className="mt-4 text-lg font-medium text-gray-900">Book not found</h3>
+                    <BookOpenIcon className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-500" />
+                    <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">{t('bookReader.bookNotFound')}</h3>
                     <Button variant="secondary" className="mt-4" onClick={() => navigate('/library')}>
-                        <ArrowLeftIcon className="h-4 w-4" /> Back to Library
+                        <ArrowLeftIcon className="h-4 w-4" /> {t('bookReader.backToLibrary')}
                     </Button>
                 </div>
             </div>
@@ -851,9 +909,9 @@ export default function BookReader() {
                 <Card className="mt-4">
                     <CardBody>
                         <div className="py-16 text-center">
-                            <BookOpenIcon className="mx-auto h-12 w-12 text-gray-300" />
-                            <h3 className="mt-4 text-lg font-medium text-gray-900">No content yet</h3>
-                            <p className="mt-1 text-sm text-gray-500">This book doesn't have any chapters with content.</p>
+                            <BookOpenIcon className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-500" />
+                            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">{t('bookReader.noContent')}</h3>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('bookReader.noContentHint')}</p>
                         </div>
                     </CardBody>
                 </Card>
@@ -886,10 +944,10 @@ export default function BookReader() {
             {tocOpen && (
                 <div className="fixed inset-0 z-40">
                     <div className="fixed inset-0 bg-gray-900/30" onClick={() => setTocOpen(false)} />
-                    <div className="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] overflow-y-auto bg-white shadow-2xl">
-                        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-                            <h3 className="text-sm font-bold text-gray-900">Table of Contents</h3>
-                            <button onClick={() => setTocOpen(false)} className="rounded-md p-1 text-gray-400 hover:bg-gray-100">
+                    <div className="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] overflow-y-auto bg-white shadow-2xl dark:bg-night-100">
+                        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-night-300">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('bookReader.tableOfContents')}</h3>
+                            <button onClick={() => setTocOpen(false)} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-night-200">
                                 <XMarkIcon className="h-5 w-5" />
                             </button>
                         </div>
@@ -903,11 +961,11 @@ export default function BookReader() {
                                     }}
                                     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                                         idx === activeChapter
-                                            ? 'bg-brand-50 font-semibold text-brand-700'
-                                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                            ? 'bg-brand-50 font-semibold text-brand-700 dark:bg-brand-950/50 dark:text-brand-300'
+                                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-night-200 dark:hover:text-white'
                                     }`}
                                 >
-                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-500">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-500 dark:bg-night-200 dark:text-gray-400">
                                         {ch.is_unlocked === false ? '🔒' : idx + 1}
                                     </span>
                                     <span className="truncate">{ch.name}</span>
@@ -933,39 +991,39 @@ export default function BookReader() {
                                     className="scroll-mt-24"
                                 >
                                     {/* Chapter divider */}
-                                    <div className={`${idx > 0 ? 'mt-14 border-t border-gray-200 pt-10' : ''} mb-8`}>
+                                    <div className={`${idx > 0 ? 'mt-14 border-t border-gray-200 pt-10 dark:border-night-300' : ''} mb-8`}>
                                         <div className="flex items-center justify-between">
                                             <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-brand-500">
-                                                Chapter {idx + 1}
+                                                {t('bookReader.chapter')} {idx + 1}
                                             </span>
                                             {isLocked && (
-                                                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">
-                                                    🔒 Locked
+                                                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+                                                    🔒 {t('bookReader.locked')}
                                                 </span>
                                             )}
                                         </div>
-                                        <h2 className="text-2xl font-bold text-gray-900 lg:text-3xl">{ch.name}</h2>
+                                        <h2 className="text-2xl font-bold text-gray-900 lg:text-3xl dark:text-white">{ch.name}</h2>
                                         {ch.description && (
-                                            <p className="mt-2 text-gray-500">{ch.description}</p>
+                                            <p className="mt-2 text-gray-500 dark:text-gray-400">{ch.description}</p>
                                         )}
                                     </div>
 
                                     {isLocked ? (
                                         /* Chapter Lock Screen */
-                                        <div className="my-8 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-8 text-center">
+                                        <div className="my-8 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-8 text-center dark:border-amber-800 dark:bg-amber-950/30">
                                             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white text-2xl shadow-md">
                                                 🔒
                                             </div>
-                                            <h3 className="mt-4 text-xl font-bold text-amber-950">Chapter {idx + 1} is Locked</h3>
-                                            <p className="mt-2 max-w-md mx-auto text-sm text-amber-800">
-                                                To unlock this chapter, you must attempt and pass <strong>Chapter {idx}'s End-of-Chapter Exam</strong>.
-                                            </p>
+                                            <h3 className="mt-4 text-xl font-bold text-amber-950 dark:text-amber-100">{t('bookReader.chapterLocked', { number: idx + 1 })}</h3>
+                                            <p className="mt-2 max-w-md mx-auto text-sm text-amber-800 dark:text-amber-200"
+                                                dangerouslySetInnerHTML={{ __html: t('bookReader.chapterLockedHint', { number: idx }) }}
+                                            />
                                             <Button
                                                 variant="primary"
                                                 className="mt-5 bg-amber-600 hover:bg-amber-700 text-white"
                                                 onClick={() => scrollToChapter(idx - 1)}
                                             >
-                                                Go to Chapter {idx} Exam →
+                                                {t('bookReader.goToChapterExam', { number: idx })}
                                             </Button>
                                         </div>
                                     ) : (
@@ -978,8 +1036,8 @@ export default function BookReader() {
                                             </div>
 
                                             {ch.content_blocks.length === 0 && (
-                                                <p className="py-6 text-center text-sm italic text-gray-400">
-                                                    No content in this chapter yet.
+                                                <p className="py-6 text-center text-sm italic text-gray-400 dark:text-gray-500">
+                                                    {t('bookReader.noContentInChapter')}
                                                 </p>
                                             )}
 
@@ -999,11 +1057,11 @@ export default function BookReader() {
 
                         {/* End of book */}
                         {firstLockedIndex === -1 && (
-                            <div className="mt-16 border-t border-gray-200 py-12 text-center">
-                                <BookOpenIcon className="mx-auto h-10 w-10 text-gray-300" />
-                                <p className="mt-3 text-sm font-medium text-gray-500">End of Book</p>
+                            <div className="mt-16 border-t border-gray-200 py-12 text-center dark:border-night-300">
+                                <BookOpenIcon className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-500" />
+                                <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">{t('bookReader.endOfBook')}</p>
                                 <Button variant="secondary" className="mt-4" onClick={() => navigate('/library')}>
-                                    <ArrowLeftIcon className="h-4 w-4" /> Back to Library
+                                    <ArrowLeftIcon className="h-4 w-4" /> {t('bookReader.backToLibrary')}
                                 </Button>
                             </div>
                         )}
@@ -1015,38 +1073,38 @@ export default function BookReader() {
                         <div className="mb-8">
                             <div className="flex items-center justify-between">
                                 <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-brand-500">
-                                    Chapter {currentChapter + 1} of {visibleChapters.length}
+                                    {t('bookReader.chapterOf', { current: currentChapter + 1, total: visibleChapters.length })}
                                 </span>
                                 {visibleChapters[currentChapter].is_unlocked === false && (
-                                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">
-                                        🔒 Locked
+                                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+                                        🔒 {t('bookReader.locked')}
                                     </span>
                                 )}
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 lg:text-3xl">
+                            <h2 className="text-2xl font-bold text-gray-900 lg:text-3xl dark:text-white">
                                 {visibleChapters[currentChapter].name}
                             </h2>
                             {visibleChapters[currentChapter].description && (
-                                <p className="mt-2 text-gray-500">{visibleChapters[currentChapter].description}</p>
+                                <p className="mt-2 text-gray-500 dark:text-gray-400">{visibleChapters[currentChapter].description}</p>
                             )}
                         </div>
 
                         {visibleChapters[currentChapter].is_unlocked === false ? (
                             /* Chapter Lock Screen */
-                            <div className="my-8 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-8 text-center">
+                            <div className="my-8 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-8 text-center dark:border-amber-800 dark:bg-amber-950/30">
                                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white text-2xl shadow-md">
                                     🔒
                                 </div>
-                                <h3 className="mt-4 text-xl font-bold text-amber-950">Chapter {currentChapter + 1} is Locked</h3>
-                                <p className="mt-2 max-w-md mx-auto text-sm text-amber-800">
-                                    To unlock this chapter, you must attempt and pass <strong>Chapter {currentChapter}'s End-of-Chapter Exam</strong>.
-                                </p>
+                                <h3 className="mt-4 text-xl font-bold text-amber-950 dark:text-amber-100">{t('bookReader.chapterLocked', { number: currentChapter + 1 })}</h3>
+                                <p className="mt-2 max-w-md mx-auto text-sm text-amber-800 dark:text-amber-200"
+                                    dangerouslySetInnerHTML={{ __html: t('bookReader.chapterLockedHint', { number: currentChapter }) }}
+                                />
                                 <Button
                                     variant="primary"
                                     className="mt-5 bg-amber-600 hover:bg-amber-700 text-white"
                                     onClick={() => setCurrentChapter(currentChapter - 1)}
                                 >
-                                    Go to Chapter {currentChapter} Exam →
+                                    {t('bookReader.goToChapterExam', { number: currentChapter })}
                                 </Button>
                             </div>
                         ) : (
@@ -1060,8 +1118,8 @@ export default function BookReader() {
                                 {visibleChapters[currentChapter].content_blocks.length === 0 && (
                                     <Card className="mt-4">
                                         <CardBody>
-                                            <p className="py-8 text-center text-sm italic text-gray-400">
-                                                No content in this chapter yet.
+                                            <p className="py-8 text-center text-sm italic text-gray-400 dark:text-gray-500">
+                                                {t('bookReader.noContentInChapter')}
                                             </p>
                                         </CardBody>
                                     </Card>
@@ -1079,16 +1137,16 @@ export default function BookReader() {
                         )}
 
                         {/* Previous / Next navigation */}
-                        <div className="mt-12 flex items-center justify-between border-t border-gray-200 pt-6">
+                        <div className="mt-12 flex items-center justify-between border-t border-gray-200 pt-6 dark:border-night-300">
                             <div>
                                 {currentChapter > 0 ? (
                                     <button
                                         onClick={() => setCurrentChapter(currentChapter - 1)}
-                                        className="group flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+                                        className="group flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-night-300 dark:text-gray-200 dark:hover:bg-brand-950/40 dark:hover:text-brand-300"
                                     >
                                         <ChevronLeftIcon className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
                                         <div className="text-left">
-                                            <span className="block text-xs text-gray-400">Previous</span>
+                                            <span className="block text-xs text-gray-400 dark:text-gray-500">{t('bookReader.previous')}</span>
                                             <span className="block max-w-[140px] truncate sm:max-w-[200px]">{visibleChapters[currentChapter - 1].name}</span>
                                         </div>
                                     </button>
@@ -1104,21 +1162,21 @@ export default function BookReader() {
                                         disabled={visibleChapters[currentChapter + 1]?.is_unlocked === false}
                                         className={`group flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
                                             visibleChapters[currentChapter + 1]?.is_unlocked === false
-                                                ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                                                : 'border-gray-200 text-gray-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700'
+                                                ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed dark:border-night-300 dark:bg-night-200 dark:text-gray-500'
+                                                : 'border-gray-200 text-gray-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-night-300 dark:text-gray-200 dark:hover:bg-brand-950/40 dark:hover:text-brand-300'
                                         }`}
                                     >
                                         <div className="text-right">
-                                            <span className="block text-xs text-gray-400">Next</span>
+                                            <span className="block text-xs text-gray-400 dark:text-gray-500">{t('bookReader.next')}</span>
                                             <span className="block max-w-[140px] truncate sm:max-w-[200px]">
-                                                {visibleChapters[currentChapter + 1]?.is_unlocked === false ? '🔒 Locked' : visibleChapters[currentChapter + 1].name}
+                                                {visibleChapters[currentChapter + 1]?.is_unlocked === false ? `🔒 ${t('bookReader.locked')}` : visibleChapters[currentChapter + 1].name}
                                             </span>
                                         </div>
                                         <ChevronRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
                                     </button>
                                 ) : (
                                     <Button variant="secondary" onClick={() => navigate('/library')}>
-                                        <ArrowLeftIcon className="h-4 w-4" /> Back to Library
+                                        <ArrowLeftIcon className="h-4 w-4" /> {t('bookReader.backToLibrary')}
                                     </Button>
                                 )}
                             </div>
@@ -1150,75 +1208,76 @@ function ReaderToolbar({
     onBack: () => void;
     onTocToggle: () => void;
 }) {
+    const { t } = useLanguage();
     const breadcrumb = [book.category?.name, book.grade?.name].filter(Boolean).join(' · ');
 
     return (
-        <div className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
+        <div className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-night-300 dark:bg-night-100/95">
             <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
                 {/* Back */}
                 <button
                     onClick={onBack}
-                    className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                    title="Back to library"
+                    className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-night-200 dark:hover:text-gray-300"
+                    title={t('bookReader.backToLibraryTitle')}
                 >
                     <ArrowLeftIcon className="h-5 w-5" />
                 </button>
 
                 {/* Title + breadcrumb */}
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-900">{book.name}</p>
+                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{book.name}</p>
                     {breadcrumb && (
-                        <p className="truncate text-xs text-gray-400">{breadcrumb}</p>
+                        <p className="truncate text-xs text-gray-400 dark:text-gray-500">{breadcrumb}</p>
                     )}
                 </div>
 
                 {/* Chapter indicator */}
                 {totalChapters > 0 && (
-                    <span className="hidden text-xs text-gray-400 sm:block">
-                        Ch. {activeChapter + 1}/{totalChapters}
+                    <span className="hidden text-xs text-gray-400 sm:block dark:text-gray-500">
+                        {t('bookReader.progressCh', { current: activeChapter + 1, total: totalChapters })}
                     </span>
                 )}
 
                 {/* TOC toggle */}
                 <button
                     onClick={onTocToggle}
-                    className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                    title="Table of contents"
+                    className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-night-200 dark:hover:text-gray-300"
+                    title={t('bookReader.tableOfContentsTitle')}
                 >
                     <ListBulletIcon className="h-5 w-5" />
                 </button>
 
                 {/* Mode toggle */}
-                <div className="flex shrink-0 items-center overflow-hidden rounded-lg border border-gray-200">
+                <div className="flex shrink-0 items-center overflow-hidden rounded-lg border border-gray-200 dark:border-night-300">
                     <button
                         onClick={() => onModeChange('scroll')}
                         className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-colors ${
                             mode === 'scroll'
                                 ? 'bg-brand-600 text-white'
-                                : 'bg-white text-gray-500 hover:bg-gray-50'
+                                : 'bg-white text-gray-500 hover:bg-gray-50 dark:bg-night-100 dark:text-gray-400 dark:hover:bg-night-200'
                         }`}
-                        title="Scroll mode — continuous reading"
+                        title={t('bookReader.scrollModeTitle')}
                     >
                         <Bars3BottomLeftIcon className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Scroll</span>
+                        <span className="hidden sm:inline">{t('bookReader.scroll')}</span>
                     </button>
                     <button
                         onClick={() => onModeChange('page')}
                         className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-colors ${
                             mode === 'page'
                                 ? 'bg-brand-600 text-white'
-                                : 'bg-white text-gray-500 hover:bg-gray-50'
+                                : 'bg-white text-gray-500 hover:bg-gray-50 dark:bg-night-100 dark:text-gray-400 dark:hover:bg-night-200'
                         }`}
-                        title="Page mode — one chapter at a time"
+                        title={t('bookReader.pageModeTitle')}
                     >
                         <BookOpenIcon className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Page</span>
+                        <span className="hidden sm:inline">{t('bookReader.page')}</span>
                     </button>
                 </div>
             </div>
 
             {/* Progress bar */}
-            <div className="h-0.5 w-full bg-gray-100">
+            <div className="h-0.5 w-full bg-gray-100 dark:bg-night-200">
                 <div
                     className="h-full bg-brand-500 transition-all duration-300"
                     style={{ width: `${progress}%` }}

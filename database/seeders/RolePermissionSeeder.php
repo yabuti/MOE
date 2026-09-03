@@ -46,6 +46,10 @@ class RolePermissionSeeder extends Seeder
             // Student tracking
             'view student progress', 'view reports',
 
+            // School management (school-admin scoped)
+            'manage students', 'view students', 'register students', 'evaluate students',
+            'edit school settings',
+
             // System
             'view audit logs', 'view notifications', 'send notifications',
         ];
@@ -78,6 +82,15 @@ class RolePermissionSeeder extends Seeder
         $student->syncPermissions([
             'view dashboard',
             'view catalog', 'view content',
+        ]);
+
+        $school = Role::firstOrCreate(['name' => 'school']);
+        $school->syncPermissions([
+            'view dashboard',
+            'view catalog', 'view content', 'view exams',
+            'view student progress', 'view reports',
+            'manage students', 'view students', 'register students', 'evaluate students',
+            'edit school settings',
         ]);
 
         $ministry = Role::firstOrCreate(['name' => 'ministry']);

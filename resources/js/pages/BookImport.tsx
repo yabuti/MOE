@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { toast } from 'react-toastify';
 import { isAxiosError } from 'axios';
 import { api, getErrorMessage } from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, Input, PageHeader, Select } from '../components/ui';
 import { ArrowPathIcon, DocumentArrowUpIcon, FolderIcon } from '@heroicons/react/24/outline';
 
@@ -26,6 +27,7 @@ interface Option {
 }
 
 export default function BookImport() {
+    const { t } = useLanguage();
     const [tree, setTree] = useState<TreeNode[]>([]);
     const [loadingTree, setLoadingTree] = useState(true);
 
@@ -71,7 +73,7 @@ export default function BookImport() {
         if (!f) return;
         if (f.size > 50 * 1024 * 1024) {
             setFile(null);
-            toast.error('PDF is too large (max 50 MB).');
+            toast.error(t('bookImport.tooLarge'));
             return;
         }
         const base = f.name.replace(/\.pdf$/i, '').replace(/[_\-]+/g, ' ').trim();
@@ -91,11 +93,11 @@ export default function BookImport() {
             });
             setPreview(data);
             if (!data.tree || data.tree.length === 0) {
-                toast.error('No chapter headings were detected in this PDF.');
+                toast.error(t('bookImport.noHeadings'));
             }
         } catch (err) {
             if (isAxiosError(err) && err.code === 'ECONNABORTED') {
-                toast.error('Analysis timed out. The PDF is probably too large or a scanned (image-only) book.');
+                toast.error(t('bookImport.analysisTimeout'));
             } else {
                 toast.error(getErrorMessage(err));
             }
@@ -134,24 +136,24 @@ export default function BookImport() {
     const canImport = !!file && !!categoryId && !!gradeId && !!bookTitle.trim();
 
     return (
-        <div>
+        <div className="min-h-screen bg-gray-50 dark:bg-night-200">
             <PageHeader
-                title="Import Book"
-                description="Upload a book PDF — pick the category and grade, and the book plus its chapters are created automatically (Amharic & English headings)."
+                title={t('bookImport.title')}
+                description={t('bookImport.description')}
             />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
                 <div className="lg:col-span-2">
                     <Card>
-                        <CardHeader title="1 · Upload PDF" subtitle="Select a book PDF to analyze" />
+                        <CardHeader title={t('bookImport.uploadPdf')} subtitle={t('bookImport.selectBookPdf')} />
                         <CardBody>
                             <form onSubmit={runAnalysis} className="space-y-4">
-                                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center hover:border-brand-400 hover:bg-brand-50">
-                                    <DocumentArrowUpIcon className="h-10 w-10 text-gray-400" />
-                                    <span className="mt-3 text-sm font-medium text-gray-700">
-                                        {file ? file.name : 'Click to choose a PDF'}
+                                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-night-300 bg-gray-50 dark:bg-night-200 px-6 py-10 text-center hover:border-brand-400 hover:bg-brand-50">
+                                    <DocumentArrowUpIcon className="h-10 w-10 text-gray-400 dark:text-gray-500" />
+                                    <span className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                        {file ? file.name : t('bookImport.clickToChoose')}
                                     </span>
-                                    <span className="mt-1 text-xs text-gray-500">Digital .pdf · up to 50 MB</span>
+                                    <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('bookImport.fileInfo')}</span>
                                     <input
                                         type="file"
                                         accept="application/pdf,.pdf"
@@ -160,17 +162,17 @@ export default function BookImport() {
                                     />
                                 </label>
                                 <Input
-                                    label="Book title"
+                                    label={t('bookImport.bookTitle')}
                                     value={bookTitle}
                                     onChange={(e) => setBookTitle(e.target.value)}
-                                    placeholder="e.g. Mathematics Grade 1 Student Book"
+                                    placeholder={t('bookImport.bookTitlePlaceholder')}
                                     required
                                 />
                                 <Button type="submit" className="w-full" loading={analyzing} disabled={!file}>
-                                    {analyzing ? 'Analyzing…' : 'Run Analysis'}
+                                    {analyzing ? t('bookImport.analyzing') : t('bookImport.runAnalysis')}
                                 </Button>
                                 {analyzing && (
-                                    <p className="text-xs text-gray-500">Reading the PDF… this can take a while for large books. Scanned PDFs (images only) cannot be analyzed.</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('bookImport.readingPdf')}</p>
                                 )}
                             </form>
                         </CardBody>
@@ -180,31 +182,31 @@ export default function BookImport() {
                 <div className="lg:col-span-3">
                     <Card>
                         <CardHeader
-                            title="2 · Place & Import"
-                            subtitle="Choose where the book belongs, review the detected chapters"
+                            title={t('bookImport.placeAndImport')}
+                            subtitle={t('bookImport.chooseCategoryGrade')}
                         />
                         <CardBody>
                             <div className="space-y-4">
                                 {categories.length === 0 ? (
                                     <EmptyState
-                                        title="No categories available"
-                                        description="Create a Category → Grade structure in the Catalog first, then import a book into it."
+                                        title={t('bookImport.noCategories')}
+                                        description={t('bookImport.createCatalogFirst')}
                                         action={
                                             <Button variant="secondary" loading={loadingTree} onClick={() => void loadTree()}>
-                                                <ArrowPathIcon className="h-4 w-4" /> Refresh
+                                                <ArrowPathIcon className="h-4 w-4" /> {t('bookImport.refresh')}
                                             </Button>
                                         }
                                     />
                                 ) : (
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                        <Select label="Category" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setGradeId(''); }}>
-                                            <option value="">Select a category…</option>
+                                        <Select label={t('bookImport.category')} value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setGradeId(''); }}>
+                                            <option value="">{t('bookImport.selectCategory')}</option>
                                             {categories.map((c) => (
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
                                         </Select>
-                                        <Select label="Grade" value={gradeId} onChange={(e) => setGradeId(e.target.value)} disabled={!categoryId}>
-                                            <option value="">Select a grade…</option>
+                                        <Select label={t('bookImport.grade')} value={gradeId} onChange={(e) => setGradeId(e.target.value)} disabled={!categoryId}>
+                                            <option value="">{t('bookImport.selectGrade')}</option>
                                             {grades.map((g) => (
                                                 <option key={g.id} value={g.id}>{g.name}</option>
                                             ))}
@@ -213,25 +215,25 @@ export default function BookImport() {
                                 )}
 
                                 {!preview ? (
-                                    <p className="text-sm text-gray-500">
-                                        Upload a PDF on the left, then run the analysis to see the detected chapters before importing.
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {t('bookImport.uploadHint')}
                                     </p>
                                 ) : (
                                     <div className="space-y-4">
                                         <div className="flex flex-wrap items-center gap-3">
-                                            <Badge variant="blue">{chapterCount} chapter(s) detected</Badge>
+                                            <Badge variant="blue">{t('bookImport.chaptersDetected', { count: chapterCount })}</Badge>
                                         </div>
 
-                                        <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-200 divide-y divide-gray-100">
+                                        <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-200 dark:border-night-300 divide-y divide-gray-100 dark:divide-night-300">
                                             {preview.tree.map((ch, i) => (
                                                 <div key={i} className="px-4 py-3">
                                                     <div className="flex items-center gap-2">
                                                         <FolderIcon className="h-4 w-4 shrink-0 text-brand-500" />
-                                                        <span className="font-medium text-gray-900">{ch.title}</span>
-                                                        <Badge variant="blue">chapter</Badge>
+                                                        <span className="font-medium text-gray-900 dark:text-white">{ch.title}</span>
+                                                        <Badge variant="blue">{t('bookImport.chapter')}</Badge>
                                                     </div>
                                                     {ch.body_snippet && (
-                                                        <p className="mt-1 pl-6 text-xs text-gray-500 line-clamp-2">{ch.body_snippet}</p>
+                                                        <p className="mt-1 pl-6 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{ch.body_snippet}</p>
                                                     )}
                                                 </div>
                                             ))}
@@ -239,17 +241,17 @@ export default function BookImport() {
 
                                         {preview.text_preview && (
                                             <div>
-                                                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">Extracted text preview</p>
-                                                <p className="rounded-lg bg-gray-50 px-4 py-3 font-mono text-xs text-gray-600">{preview.text_preview}</p>
+                                                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('bookImport.extractedPreview')}</p>
+                                                <p className="rounded-lg bg-gray-50 dark:bg-night-200 px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">{preview.text_preview}</p>
                                             </div>
                                         )}
 
-                                        <div className="flex items-center justify-end gap-2 border-t border-gray-200 pt-4">
+                                        <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-night-300 pt-4">
                                             <Button variant="secondary" onClick={() => setPreview(null)}>
                                                 Back
                                             </Button>
                                             <Button variant="success" loading={importing} disabled={!canImport} onClick={() => void runImport()}>
-                                                {importing ? 'Importing…' : 'Import Book'}
+                                                {importing ? t('bookImport.importing') : t('bookImport.importBook')}
                                             </Button>
                                         </div>
                                     </div>

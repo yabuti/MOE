@@ -1,0 +1,21 @@
+const dashboard: Record<string, string> = {
+    'dashboard.users': 'Users',
+    'dashboard.schools': 'Schools',
+    'dashboard.books': 'Books',
+    'dashboard.students': 'Students',
+    'dashboard.title': 'Dashboard',
+    'dashboard.failedToLoad': 'Failed to load dashboard',
+    'dashboard.greetingMorning': 'Good morning',
+    'dashboard.greetingAfternoon': 'Good afternoon',
+    'dashboard.greetingEvening': 'Good evening',
+    'dashboard.welcomeBack': 'Welcome back, {name} 👋',
+    'dashboard.signedInAs': 'You are signed in as {role}. Here is the latest activity across your education platform.',
+    'dashboard.recentActivity': 'Recent Activity',
+    'dashboard.events': '{count} events',
+    'dashboard.noRecentActivity': 'No recent activity',
+    'dashboard.system': 'System',
+    'dashboard.newestUsers': 'Newest Users',
+    'dashboard.joined': '{count} joined',
+    'dashboard.noUsersYet': 'No users yet',
+};
+export default dashboard;

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { Card, CardBody, PageHeader } from '../components/ui';
+import { useLanguage } from '../context/LanguageContext';
 import { BookOpenIcon } from '@heroicons/react/24/outline';
 
 interface Book {
@@ -29,7 +30,6 @@ interface Category {
     grades: Grade[];
 }
 
-// Generate a consistent pastel color from a string
 function stringToColor(str: string): string {
     const colors = [
         'from-blue-500 to-blue-700',
@@ -51,6 +51,7 @@ function stringToColor(str: string): string {
 }
 
 export default function Library() {
+    const { t } = useLanguage();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -71,8 +72,8 @@ export default function Library() {
     if (loading) {
         return (
             <div>
-                <PageHeader title="Library" description="Browse published textbooks" />
-                <Card><CardBody><div className="py-16 text-center text-sm text-gray-500">Loading library…</div></CardBody></Card>
+                <PageHeader title={t('library.title')} description={t('library.descriptionEmpty')} />
+                <Card><CardBody><div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">{t('library.loading')}</div></CardBody></Card>
             </div>
         );
     }
@@ -80,13 +81,13 @@ export default function Library() {
     if (categories.length === 0) {
         return (
             <div>
-                <PageHeader title="Library" description="Browse published textbooks" />
+                <PageHeader title={t('library.title')} description={t('library.descriptionEmpty')} />
                 <Card>
                     <CardBody>
                         <div className="py-16 text-center">
-                            <BookOpenIcon className="mx-auto h-12 w-12 text-gray-300" />
-                            <h3 className="mt-4 text-lg font-medium text-gray-900">No books available yet</h3>
-                            <p className="mt-1 text-sm text-gray-500">Published books will appear here.</p>
+                            <BookOpenIcon className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-500" />
+                            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">{t('library.noBooks')}</h3>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('library.noBooksHint')}</p>
                         </div>
                     </CardBody>
                 </Card>
@@ -96,25 +97,22 @@ export default function Library() {
 
     return (
         <div>
-            <PageHeader title="Library" description="Browse and read published textbooks" />
+            <PageHeader title={t('library.title')} description={t('library.descriptionData')} />
 
             <div className="space-y-10">
                 {categories.map((category) => (
                     <section key={category.id}>
-                        {/* Category header */}
                         <div className="mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900">{category.name}</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{category.name}</h2>
                             {category.description && (
-                                <p className="mt-1 text-sm text-gray-500">{category.description}</p>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{category.description}</p>
                             )}
                         </div>
 
                         {category.grades.map((grade) => (
                             <div key={grade.id} className="mb-8">
-                                {/* Grade sub-header */}
-                                <h3 className="mb-4 text-lg font-semibold text-gray-700">{grade.name}</h3>
+                                <h3 className="mb-4 text-lg font-semibold text-gray-700 dark:text-gray-200">{grade.name}</h3>
 
-                                {/* Books grid */}
                                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                     {grade.books.map((book) => {
                                         const gradient = stringToColor(book.name);
@@ -122,9 +120,8 @@ export default function Library() {
                                             <Link
                                                 key={book.id}
                                                 to={`/read/${book.id}`}
-                                                className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg hover:-translate-y-1"
+                                                className="group overflow-hidden rounded-xl border border-gray-200 dark:border-night-300 bg-white dark:bg-night-100 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1"
                                             >
-                                                {/* Book cover */}
                                                 <div className={`relative flex h-44 items-center justify-center bg-gradient-to-br ${gradient}`}>
                                                     <BookOpenIcon className="h-16 w-16 text-white/30" />
                                                     <div className="absolute inset-0 flex items-center justify-center p-4">
@@ -134,27 +131,26 @@ export default function Library() {
                                                     </div>
                                                 </div>
 
-                                                {/* Book info */}
                                                 <div className="p-4">
-                                                    <p className="text-sm text-gray-600 line-clamp-2">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
                                                         {book.description || book.name}
                                                     </p>
                                                     <div className="mt-3 flex items-center justify-between">
                                                         <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
-                                                            {book.chapters_count} {book.chapters_count === 1 ? 'chapter' : 'chapters'}
+                                                            {book.chapters_count} {book.chapters_count === 1 ? t('library.chapter') : t('library.chapters')}
                                                         </span>
                                                         {typeof book.read_percent === 'number' && book.read_percent > 0 ? (
                                                             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                                                                {book.read_percent}% read
+                                                                {book.read_percent}% {t('library.readProgress')}
                                                             </span>
                                                         ) : (
                                                             <span className="text-sm font-medium text-brand-600 group-hover:text-brand-700">
-                                                                Read →
+                                                                {t('library.readMore')} →
                                                             </span>
                                                         )}
                                                     </div>
                                                     {typeof book.read_percent === 'number' && book.read_percent > 0 && (
-                                                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-night-200">
                                                             <div
                                                                 className="h-full rounded-full bg-emerald-500 transition-all"
                                                                 style={{ width: `${Math.min(100, book.read_percent)}%` }}

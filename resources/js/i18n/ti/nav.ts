@@ -1,0 +1,23 @@
+const nav: Record<string, string> = {
+    'dashboard': 'ዳሽቦርድ',
+    'myProgress': 'የእንቲ ለውጥ',
+    'parentDashboard': 'የወላይት ዳሽቦርድ',
+    'schoolDashboard': 'የትምህርት ቤት ዳሽቦርድ',
+    'students': 'ተማሪዎች',
+    'schools': 'ትምህርት ቤቶች',
+    'nodeTypes': 'የናድ ዓይነቶች',
+    'catalog': 'መዝገብ',
+    'importBooks': 'መጠበቅ መጽሐፍ',
+    'content': 'ይዘት',
+    'exams': 'ፈተናዎች',
+    'library': 'ቤተ መዛግብት',
+    'users': 'ተጠቃሚዎች',
+    'roles': 'ሚናዎች',
+    'auditLogs': 'የAuditing መዝገቦች',
+    'myProfile': 'የእንቲ መገለጫ',
+    'changePassword': 'የይለፍ ቃል ቀይር',
+    'signOut': 'ውጣ',
+    'lightMode': 'ቀላል ሁነታ',
+    'darkMode': 'ጥንቅቅ ሁነታ',
+};
+export default nav;

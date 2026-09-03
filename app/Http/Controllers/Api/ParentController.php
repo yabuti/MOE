@@ -116,14 +116,29 @@ class ParentController extends Controller
             ], 403);
         }
 
+        $current = \App\Support\EnrollmentService::activeEnrollment($child);
+
         return response()->json([
             'child' => [
                 'id' => $child->id,
                 'name' => $child->name,
                 'email' => $child->email,
                 'parent_name' => $child->parentUser?->name,
+                'current_grade' => $current?->grade?->name,
+                'school' => $current?->school?->name,
+                'academic_year' => $current?->academic_year,
+                'enrollment_history' => $child->enrollments()
+                    ->with(['grade:id,name', 'school:id,name'])
+                    ->orderByDesc('academic_year')
+                    ->get()
+                    ->map(fn ($e) => [
+                        'academic_year' => $e->academic_year,
+                        'grade' => $e->grade?->name,
+                        'school' => $e->school?->name,
+                        'status' => $e->status,
+                    ]),
             ],
-            'progress' => ProgressReport::forUser($child),
+            'progress' => \App\Support\ProgressReport::forUser($child),
         ]);
     }
 

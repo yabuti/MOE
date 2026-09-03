@@ -1,0 +1,23 @@
+const nav: Record<string, string> = {
+    'nav.dashboard': 'Dashboard',
+    'nav.myProgress': 'My Progress',
+    'nav.parentDashboard': 'Parent Dashboard',
+    'nav.schoolDashboard': 'School Dashboard',
+    'nav.students': 'Students',
+    'nav.schools': 'Schools',
+    'nav.nodeTypes': 'Node Types',
+    'nav.catalog': 'Catalog',
+    'nav.importBooks': 'Import Books',
+    'nav.content': 'Content',
+    'nav.exams': 'Exams',
+    'nav.library': 'Library',
+    'nav.users': 'Users',
+    'nav.roles': 'Roles',
+    'nav.auditLogs': 'Audit Logs',
+    'nav.myProfile': 'My Profile',
+    'nav.changePassword': 'Change Password',
+    'nav.signOut': 'Sign out',
+    'nav.lightMode': 'Light Mode',
+    'nav.darkMode': 'Dark Mode',
+};
+export default nav;

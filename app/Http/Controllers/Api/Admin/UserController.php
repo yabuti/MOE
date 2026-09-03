@@ -12,9 +12,14 @@ class UserController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $users = User::with('roles')
+        $users = User::with('roles.permissions')
             ->latest()
             ->paginate(15);
+
+        foreach ($users as $user) {
+            $perms = $user->roles->flatMap(fn ($role) => $role->permissions->pluck('name'))->unique();
+            $user->setAttribute('permissions_count', $perms->count());
+        }
 
         return response()->json([
             'users' => $users->items(),

@@ -15,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'parent_user_id'])]
+#[Fillable(['name', 'email', 'password', 'generated_password', 'parent_user_id', 'school_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -40,6 +40,11 @@ class User extends Authenticatable
         return $this->belongsToMany(School::class)->withPivot('role')->withTimestamps();
     }
 
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'school_id');
+    }
+
     public function parentUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'parent_user_id');
@@ -48,6 +53,11 @@ class User extends Authenticatable
     public function children(): HasMany
     {
         return $this->hasMany(User::class, 'parent_user_id');
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
     }
 
     public function examAttempts(): HasMany
