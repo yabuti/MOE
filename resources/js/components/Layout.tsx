@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { localeNames, locales, type Locale } from '../i18n';
 import {
@@ -18,10 +17,7 @@ import {
     HomeIcon,
     InboxIcon,
     KeyIcon,
-    MoonIcon,
     ShieldCheckIcon,
-    SunIcon,
-    TagIcon,
     UserCircleIcon,
     UserGroupIcon,
     UsersIcon,
@@ -40,12 +36,10 @@ const navigation: Array<{
     { name: 'Schools', to: '/schools', icon: BuildingOfficeIcon, permission: 'view schools' },
     { name: 'Users', to: '/users', icon: UsersIcon, permission: 'view users' },
     { name: 'Roles', to: '/roles', icon: ShieldCheckIcon, permission: 'view roles' },
-    // { name: 'Node Types', to: '/node-types', icon: TagIcon, permission: 'view node types' },
     { name: 'Catalog', to: '/catalog', icon: FolderIcon, permission: 'view catalog' },
     { name: 'Import Books', to: '/import-books', icon: DocumentArrowUpIcon, permission: 'import books' },
     { name: 'Content', to: '/content', icon: BookOpenIcon, permission: 'view content' },
     { name: 'Exams', to: '/exams', icon: AcademicCapIcon, permission: 'view exams' },
-    { name: 'Audit Logs', to: '/audit-logs', icon: InboxIcon, permission: 'view audit logs' },
 
     // School items
     { name: 'School Dashboard', to: '/school/dashboard', icon: BuildingOfficeIcon, roles: ['school'] },
@@ -59,6 +53,9 @@ const navigation: Array<{
 
     // Shared items (available to all roles)
     { name: 'Library', to: '/library', icon: BookOpenIcon },
+
+    // Last
+    { name: 'Audit Logs', to: '/audit-logs', icon: InboxIcon, permission: 'view audit logs' },
 ];
 
 function SidebarLink({ item, onNavigate }: { item: (typeof navigation)[number]; onNavigate: () => void }) {
@@ -195,7 +192,6 @@ function SidebarContent({
 }) {
     const [accountOpen, setAccountOpen] = useState(false);
     const [langOpen, setLangOpen] = useState(false);
-    const { darkMode, toggle } = useTheme();
     const { locale, setLocale, t } = useLanguage();
     const handleNavigate = () => onNavigate();
 
@@ -209,13 +205,14 @@ function SidebarContent({
 
             <div className="mt-auto border-t border-gray-200 pt-4 dark:border-night-200">
                 <div className="mb-2 flex items-center justify-between">
-                    <button
+                    {/* Appearance toggle hidden for today's presentation; forced to light mode. */}
+                    {/* <button
                         onClick={toggle}
                         className="flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-night-200 dark:hover:text-white"
                         title={darkMode ? t('nav.lightMode') : t('nav.darkMode')}
                     >
                         {darkMode ? <SunIcon className="h-5 w-5 text-amber-400" /> : <MoonIcon className="h-5 w-5 text-gray-500" />}
-                    </button>
+                    </button> */}
                     <div className="relative">
                         <button
                             onClick={() => { setLangOpen((o) => !o); setAccountOpen(false); }}

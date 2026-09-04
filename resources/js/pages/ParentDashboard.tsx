@@ -272,7 +272,7 @@ export default function ParentDashboard() {
                 <Card>
                     <CardBody>
                         <div className="py-16 text-center">
-                            <UsersIcon className="mx-auto h-12 w-12 text-gray-300" />
+                            <UsersIcon className="mx-auto h-12 w-12 text-gray-300 dark:text-night-300" />
                             <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">{t('parent.noChildren')}</p>
                         </div>
                     </CardBody>
@@ -305,7 +305,7 @@ export default function ParentDashboard() {
                             <div className="mb-4 rounded-2xl border border-gray-200 dark:border-night-300 bg-white dark:bg-night-100 p-5">
                                 <div className="flex flex-wrap items-center gap-4 text-sm">
                                     {childData.current_grade && (
-                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-800 border border-blue-200">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-800 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40">
                                             📖 {childData.current_grade}
                                         </span>
                                     )}

@@ -49,7 +49,7 @@ export default function Login() {
             />
 
             {/* Right half: login form */}
-            <div className="flex w-full items-center justify-center bg-gradient-to-br from-brand-50 to-cream-100 px-4 py-10 lg:w-1/2">
+            <div className="flex w-full items-center justify-center bg-gradient-to-br from-brand-50 to-cream-100 px-4 py-10 lg:w-1/2 dark:from-night-100 dark:to-night-100">
                 <div className="w-full max-w-md">
                     <div className="mb-8 text-center">
                         <img src="/Logo.png" alt="EduPlatform Logo" className="mx-auto mb-6 h-16 w-auto object-contain drop-shadow-sm" />

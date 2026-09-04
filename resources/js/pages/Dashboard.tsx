@@ -28,10 +28,10 @@ interface DashboardData {
 }
 
 const statCards = [
-    { name: 'Users', key: 'users' as const, icon: UsersIcon, bg: 'bg-blue-50', text: 'text-blue-600' },
-    { name: 'Schools', key: 'schools' as const, icon: BuildingOfficeIcon, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { name: 'Books', key: 'nodes' as const, icon: BookOpenIcon, bg: 'bg-brand-50', text: 'text-brand-600' },
-    { name: 'Students', key: 'students' as const, icon: AcademicCapIcon, bg: 'bg-purple-50', text: 'text-purple-600' },
+    { name: 'Users', key: 'users' as const, icon: UsersIcon, bg: 'bg-blue-50', text: 'text-blue-600', darkBg: 'dark:bg-blue-500/20', darkText: 'dark:text-blue-300' },
+    { name: 'Schools', key: 'schools' as const, icon: BuildingOfficeIcon, bg: 'bg-emerald-50', text: 'text-emerald-600', darkBg: 'dark:bg-emerald-500/20', darkText: 'dark:text-emerald-300' },
+    { name: 'Books', key: 'nodes' as const, icon: BookOpenIcon, bg: 'bg-brand-50', text: 'text-brand-600', darkBg: 'dark:bg-brand-500/20', darkText: 'dark:text-brand-300' },
+    { name: 'Students', key: 'students' as const, icon: AcademicCapIcon, bg: 'bg-purple-50', text: 'text-purple-600', darkBg: 'dark:bg-purple-500/20', darkText: 'dark:text-purple-300' },
 ];
 
 const statNameMap: Record<string, string> = {
@@ -97,7 +97,7 @@ export default function Dashboard() {
                     <Card key={s.name}>
                         <CardBody>
                             <div className="flex items-center gap-4">
-                                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${s.bg} ${s.text}`}>
+                                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${s.bg} ${s.text} ${s.darkBg} ${s.darkText}`}>
                                     <s.icon className="h-6 w-6" />
                                 </div>
                                 <div>
@@ -125,7 +125,7 @@ export default function Dashboard() {
                                 {data.recent_audit_logs.map((log) => (
                                     <li key={log.id} className="flex items-start justify-between gap-3 py-3">
                                         <div className="flex min-w-0 items-start gap-3">
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
                                                 {(log.user?.name ?? 'S').charAt(0).toUpperCase()}
                                             </div>
                                             <div className="min-w-0">

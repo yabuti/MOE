@@ -415,9 +415,9 @@ export default function Schools() {
                     </form>
                 ) : (
                     <div className="space-y-4 py-2">
-                        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center">
-                            <p className="text-sm font-semibold text-emerald-900">{t('schools.registerSuccess')}</p>
-                            <p className="mt-1 text-xs text-emerald-700">{t('schools.shareCredentials')}</p>
+                        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center dark:bg-emerald-500/20 dark:border-emerald-500/40">
+                            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">{t('schools.registerSuccess')}</p>
+                            <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-200">{t('schools.shareCredentials')}</p>
                         </div>
                         <div className="rounded-xl border border-gray-200 dark:border-night-300 bg-gray-50 dark:bg-night-200 p-4 space-y-2">
                             <div className="flex items-center justify-between text-sm">
@@ -456,9 +456,9 @@ export default function Schools() {
             >
                 {createdSchoolCredentials && (
                     <div className="space-y-4 py-2">
-                        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center">
-                            <p className="text-sm font-semibold text-emerald-900">{t('schools.createdSuffix', { name: createdSchoolCredentials.schoolName })}</p>
-                            <p className="mt-1 text-xs text-emerald-700">{t('schools.adminAutoCreated')}</p>
+                        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center dark:bg-emerald-500/20 dark:border-emerald-500/40">
+                            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">{t('schools.createdSuffix', { name: createdSchoolCredentials.schoolName })}</p>
+                            <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-200">{t('schools.adminAutoCreated')}</p>
                         </div>
                         <div className="rounded-xl border border-gray-200 dark:border-night-300 bg-gray-50 dark:bg-night-200 p-4 space-y-2">
                             <div className="flex items-center justify-between text-sm">
@@ -514,20 +514,20 @@ export default function Schools() {
                         </div>
 
                         {/* Academic year */}
-                        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-blue-700 mb-2">{t('schools.academicYearStart')}</p>
-                            <p className="text-sm font-medium text-blue-900">
+                        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:bg-blue-500/20 dark:border-blue-500/40">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-blue-700 mb-2 dark:text-blue-300">{t('schools.academicYearStart')}</p>
+                            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                                 {t(monthKeys[(viewingSchool.academic_year_month ?? 9) - 1])} {viewingSchool.academic_year_day ?? 11}
                             </p>
                         </div>
 
                         {/* School admin account */}
                         {viewingSchool.admin_email && (
-                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                                <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-2">{t('schools.adminAccount')}</p>
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:bg-amber-500/20 dark:border-amber-500/40">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-2 dark:text-amber-300">{t('schools.adminAccount')}</p>
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-amber-800">{t('schools.username')}</span>
-                                    <code className="rounded bg-white px-2 py-0.5 text-sm font-semibold text-amber-900 border border-amber-200">{viewingSchool.admin_email}</code>
+                                    <span className="text-amber-800 dark:text-amber-200">{t('schools.username')}</span>
+                                    <code className="rounded bg-white dark:bg-night-100 px-2 py-0.5 text-sm font-semibold text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-500/40">{viewingSchool.admin_email}</code>
                                 </div>
                                 <p className="mt-2 text-xs text-amber-600">{t('schools.passwordResetNote')}</p>
                             </div>

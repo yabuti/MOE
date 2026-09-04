@@ -136,15 +136,15 @@ export default function Library() {
                                                         {book.description || book.name}
                                                     </p>
                                                     <div className="mt-3 flex items-center justify-between">
-                                                        <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+                                                        <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
                                                             {book.chapters_count} {book.chapters_count === 1 ? t('library.chapter') : t('library.chapters')}
                                                         </span>
                                                         {typeof book.read_percent === 'number' && book.read_percent > 0 ? (
-                                                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                                                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
                                                                 {book.read_percent}% {t('library.readProgress')}
                                                             </span>
                                                         ) : (
-                                                            <span className="text-sm font-medium text-brand-600 group-hover:text-brand-700">
+                                                            <span className="text-sm font-medium text-brand-600 group-hover:text-brand-700 dark:text-brand-300 dark:group-hover:text-brand-200">
                                                                 {t('library.readMore')} →
                                                             </span>
                                                         )}

@@ -10,10 +10,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 const STORAGE_KEY = 'edup_theme';
 
 function getInitialDark(): boolean {
-    if (typeof window === 'undefined') return false;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved !== null) return saved === 'dark';
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+    return false;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

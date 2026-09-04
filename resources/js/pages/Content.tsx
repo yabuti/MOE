@@ -252,7 +252,7 @@ export default function Content() {
         const chapters = selectedBook?.children ?? [];
 
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-night-200">
+            <div className="min-h-screen">
                 <PageHeader title={t('content.title')} description={t('content.descriptionNoNode')} />
                 {loading ? (
                     <Card><CardBody><div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">{t('content.loading')}</div></CardBody></Card>
@@ -302,7 +302,7 @@ export default function Content() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-night-200">
+        <div className="min-h-screen">
             <PageHeader
                 title={nodeName || t('content.title')}
                 description={t('content.descriptionWithNode')}

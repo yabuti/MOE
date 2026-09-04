@@ -151,7 +151,7 @@ export default function Users() {
                                 <tr key={user.id}>
                                     <td className="whitespace-nowrap px-5 py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
                                                 {user.name.charAt(0).toUpperCase()}
                                             </div>
                                             <span className="font-medium text-gray-900 dark:text-white">{user.name}</span>
@@ -221,7 +221,7 @@ export default function Users() {
                         </Select>
                         {selectedRole && (
                             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                <ShieldCheckIcon className="h-3.5 w-3.5 text-brand-600" />
+                                <ShieldCheckIcon className="h-3.5 w-3.5 text-brand-600 dark:text-brand-300" />
                                 {t('users.grantsPermissions', { count: selectedRole.permissions_count ?? 0 })}
                             </p>
                         )}

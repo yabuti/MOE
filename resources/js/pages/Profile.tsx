@@ -32,7 +32,7 @@ export default function Profile() {
             <Card>
                 <CardBody>
                     <div className="mb-5 flex items-center gap-4">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-xl font-bold text-brand-700">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-xl font-bold text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
                             {user?.name?.charAt(0).toUpperCase() ?? '?'}
                         </div>
                         <div>

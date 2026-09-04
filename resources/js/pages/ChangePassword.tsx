@@ -27,7 +27,7 @@ export default function ChangePassword() {
     return (
         <div className="mx-auto max-w-md py-10">
             <div className="mb-6 flex items-center gap-3">
-                <LockClosedIcon className="h-8 w-8 text-brand-600" />
+                <LockClosedIcon className="h-8 w-8 text-brand-600 dark:text-brand-300" />
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('password.title')}</h1>
             </div>
             <Card>
