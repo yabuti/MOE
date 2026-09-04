@@ -1,5 +1,5 @@
 const schoolDashboard: Record<string, string> = {
-    'schoolDashboard.title': 'School Dashboard',
+    'schoolDashboard.title': 'Dashboard',
     'schoolDashboard.description': "Overview of your school's activity",
     'schoolDashboard.totalStudents': 'Total Students',
     'schoolDashboard.activeStudents': 'Active Students',

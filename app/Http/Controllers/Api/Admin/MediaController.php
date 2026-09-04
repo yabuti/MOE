@@ -33,12 +33,25 @@ class MediaController extends Controller
     public function upload(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'file' => ['required', 'file'],
+            'file' => ['required', 'file', 'max:512000'],
             'collection' => ['nullable', 'string', 'max:100'],
             'name' => ['nullable', 'string', 'max:255'],
         ]);
 
         $file = $request->file('file');
+
+        if (! $file->isValid()) {
+            $code = $file->getError();
+            $message = match ($code) {
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The file exceeds the upload size limit (max 1 GB).',
+                UPLOAD_ERR_PARTIAL => 'The file was only partially uploaded. Please try again.',
+                UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+                UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.',
+                default => 'The file failed to upload. Please try again.',
+            };
+
+            return response()->json(['message' => $message], 422);
+        }
 
         $fileName = Str::uuid() . '.' . $file->getClientOriginalExtension();
         $path = $file->storeAs('media', $fileName, 'public');

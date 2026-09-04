@@ -1,8 +1,8 @@
 const nav: Record<string, string> = {
     'nav.dashboard': 'ዳሽቦርድ',
     'nav.myProgress': 'የእኔ ለውጥ',
-    'nav.parentDashboard': 'የወላይት ዳሽቦርድ',
-    'nav.schoolDashboard': 'የትምህርት ቤት ዳሽቦርድ',
+    'nav.parentDashboard': 'ዳሽቦርድ',
+    'nav.schoolDashboard': 'ዳሽቦርድ',
     'nav.students': 'ተማሪዎች',
     'nav.schools': 'ትምህርት ቤቶች',
     'nav.nodeTypes': 'የናድ ዓይነቶች',

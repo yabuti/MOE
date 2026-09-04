@@ -18,6 +18,7 @@ const schoolStudents: Record<string, string> = {
     'grade': 'ክፍል',
     'selectGrade': 'ክፍል ይምረጥ…',
     'selectSchool': 'ትምህርት ቤት ይምረጥ…',
+    'avatarHint': 'ናይ ተማሪ ምስሊ ስቀል፣',
     'deleteTitle': 'ተማሪ ሰርዝ',
     'deleteMessage': 'እንታ {name}ን ለመስረቅ እርግጠኛ ነዎት?',
 };

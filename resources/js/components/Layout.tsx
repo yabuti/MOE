@@ -18,7 +18,6 @@ import {
     InboxIcon,
     KeyIcon,
     ShieldCheckIcon,
-    SunIcon,
     UserCircleIcon,
     UserGroupIcon,
     UsersIcon,
@@ -32,28 +31,30 @@ const navigation: Array<{
     permission?: string;
     roles?: string[];
 }> = [
-    // Admin items (shown for admin role)
+    // Top items
     { name: 'Dashboard', to: '/', icon: HomeIcon, permission: 'view dashboard' },
     { name: 'Schools', to: '/schools', icon: BuildingOfficeIcon, permission: 'view schools' },
-    { name: 'Users', to: '/users', icon: UsersIcon, permission: 'view users' },
-    { name: 'Roles', to: '/roles', icon: ShieldCheckIcon, permission: 'view roles' },
+
+    // School items
+    { name: 'Dashboard', to: '/school/dashboard', icon: BuildingOfficeIcon, permission: 'view school dashboard' },
+    { name: 'Students', to: '/school/students', icon: UsersIcon, roles: ['school'] },
+
+    // Content items
     { name: 'Catalog', to: '/catalog', icon: FolderIcon, permission: 'view catalog' },
     { name: 'Import Books', to: '/import-books', icon: DocumentArrowUpIcon, permission: 'import books' },
     { name: 'Content', to: '/content', icon: BookOpenIcon, permission: 'view content' },
     { name: 'Exams', to: '/exams', icon: AcademicCapIcon, permission: 'view exams' },
-
-    // School items
-    { name: 'School Dashboard', to: '/school/dashboard', icon: BuildingOfficeIcon, roles: ['school'] },
-    { name: 'Students', to: '/school/students', icon: UsersIcon, roles: ['school'] },
+    { name: 'Library', to: '/library', icon: BookOpenIcon },
 
     // Student items
     { name: 'My Progress', to: '/my-progress', icon: ChartBarIcon, roles: ['student'] },
 
-    // Parent items
-    { name: 'Parent Dashboard', to: '/parent', icon: UserGroupIcon, roles: ['parent'] },
+    // Admin items
+    { name: 'Users', to: '/users', icon: UsersIcon, permission: 'view users' },
+    { name: 'Roles', to: '/roles', icon: ShieldCheckIcon, permission: 'view roles' },
 
-    // Shared items (available to all roles)
-    { name: 'Library', to: '/library', icon: BookOpenIcon },
+    // Parent items
+    { name: 'Dashboard', to: '/parent', icon: UserGroupIcon, permission: 'view parent dashboard' },
 
     // Last
     { name: 'Audit Logs', to: '/audit-logs', icon: InboxIcon, permission: 'view audit logs' },
@@ -64,8 +65,6 @@ function SidebarLink({ item, onNavigate }: { item: (typeof navigation)[number]; 
     const navKey: Record<string, string> = {
         'Dashboard': 'nav.dashboard',
         'My Progress': 'nav.myProgress',
-        'Parent Dashboard': 'nav.parentDashboard',
-        'School Dashboard': 'nav.schoolDashboard',
         'Students': 'nav.students',
         'Schools': 'nav.schools',
         'Node Types': 'nav.nodeTypes',
@@ -246,9 +245,13 @@ function SidebarContent({
                         onClick={() => setAccountOpen((o) => !o)}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-night-200"
                     >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
-                            {user?.name?.charAt(0).toUpperCase() ?? '?'}
-                        </div>
+                        {user?.avatar_url ? (
+                            <img src={user.avatar_url} alt={user.name} className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                        ) : (
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
+                                {user?.name?.charAt(0).toUpperCase() ?? '?'}
+                            </div>
+                        )}
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{user?.name}</p>
                             <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.roles?.map((r) => r.name).join(', ') || t('common.member')}</p>

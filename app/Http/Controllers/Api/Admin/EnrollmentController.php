@@ -28,6 +28,7 @@ class EnrollmentController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'student_id' => ['nullable', 'string', 'max:100'],
             'grade_id' => ['required', 'integer', 'exists:catalog_nodes,id'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:4096'],
         ]);
 
         $school = School::findOrFail($validated['school_id']);
@@ -43,12 +44,19 @@ class EnrollmentController extends Controller
         $email = $this->generateUsername($validated['name'] ?? 'student');
         $password = $this->generatePassword();
 
-        $user = User::create([
+        $data = [
             'name' => $validated['name'],
             'email' => $email,
             'password' => $password,
             'generated_password' => $password,
-        ]);
+            'school_id' => $school->id,
+        ];
+
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = (new User)->storeAvatar($request->file('avatar'));
+        }
+
+        $user = User::create($data);
         $user->assignRole('student');
 
         // Link to the school (role = student).

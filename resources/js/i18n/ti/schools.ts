@@ -39,6 +39,7 @@ const schools: Record<string, string> = {
     'registerSuccess': 'ተማሪ በተሳካ ሁኔታ ተመዝግቦ',
     'shareCredentials': 'ዝን መረጃ ለተማሪው ወይም ለትምህርት ቤቱ አስተዳዳሪ ያካፍሉ።',
     'usernameEmail': 'ተጠቃሚ ስም (ኢሜይል)',
+    'avatarHint': 'ናይ ተማሪ ምስሊ ስቀል፣',
     'academicYear': 'የአካ데믹 ዓመት',
     'passwordWarning': 'የይለፍ ቃል አንድ ጊዜ ብቻ ይታያል። ማስቀመጥ ያድርጉ።',
     'adminCredentialsTitle': 'ትምህርት ቤት ተፈጥሮ — አስተዳዳሪ መረጃ',

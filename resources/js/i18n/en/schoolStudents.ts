@@ -18,6 +18,7 @@ const schoolStudents: Record<string, string> = {
     'schoolStudents.grade': 'Grade',
     'schoolStudents.selectGrade': 'Select grade…',
     'schoolStudents.selectSchool': 'Select school…',
+    'schoolStudents.avatarHint': 'Upload the student\'s profile picture.',
     'schoolStudents.deleteTitle': 'Delete student',
     'schoolStudents.deleteMessage': 'Are you sure you want to delete {name}?',
 };

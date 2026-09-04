@@ -31,5 +31,9 @@ const common: Record<string, string> = {
     'common.unspecified': 'Unspecified',
     'common.dash': '—',
     'common.perms': 'perms',
+    'common.avatar': 'Profile Picture',
+    'common.chooseImage': 'Choose Image',
+    'common.noImageSelected': 'No image selected',
+    'common.avatarHint': 'Upload a profile picture (JPG, PNG or WebP, up to 4MB).',
 };
 export default common;

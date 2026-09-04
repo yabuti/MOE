@@ -22,16 +22,20 @@ class StudentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $school = $this->resolveSchool($request);
+        $isAdmin = $request->user()->hasRole('admin');
 
-        if (! $school) {
+        if (! $school && ! $isAdmin) {
             return response()->json(['message' => 'No school linked to this account. Please select a school.'], 404);
         }
 
-        $query = User::where('school_id', $school->id)
-            ->role('student')
+        $query = User::role('student')
             ->with(['enrollments' => function ($q) {
                 $q->with('grade:id,name')->latest('started_at');
             }]);
+
+        if ($school) {
+            $query->where('school_id', $school->id);
+        }
 
         if ($request->filled('q')) {
             $search = $request->string('q')->trim();
@@ -91,6 +95,7 @@ class StudentController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'student_id' => ['nullable', 'string', 'max:100'],
             'grade_id' => ['required', 'integer', 'exists:catalog_nodes,id'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:4096'],
         ]);
 
         $grade = CatalogNode::findOrFail($validated['grade_id']);
@@ -102,13 +107,19 @@ class StudentController extends Controller
         $email = $this->generateUsername($validated['name']);
         $password = Str::upper(Str::random(3)) . '-' . Str::random(3) . '-' . random_int(100, 999);
 
-        $user = User::create([
+        $data = [
             'name' => $validated['name'],
             'email' => $email,
             'password' => $password,
             'generated_password' => $password,
             'school_id' => $school->id,
-        ]);
+        ];
+
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = (new User)->storeAvatar($request->file('avatar'));
+        }
+
+        $user = User::create($data);
         $user->assignRole('student');
         $user->schools()->syncWithoutDetaching([$school->id => ['role' => 'student']]);
 
@@ -144,8 +155,9 @@ class StudentController extends Controller
     public function show(Request $request, User $student): JsonResponse
     {
         $school = $this->resolveSchool($request);
+        $isAdmin = $request->user()->hasRole('admin');
 
-        if (! $school || $student->school_id !== $school->id) {
+        if (! $isAdmin && (! $school || $student->school_id !== $school->id)) {
             return response()->json(['message' => 'Student not found in this school.'], 404);
         }
 
@@ -183,8 +195,9 @@ class StudentController extends Controller
     public function evaluate(Request $request, User $student): JsonResponse
     {
         $school = $this->resolveSchool($request);
+        $isAdmin = $request->user()->hasRole('admin');
 
-        if (! $school || $student->school_id !== $school->id) {
+        if (! $isAdmin && (! $school || $student->school_id !== $school->id)) {
             return response()->json(['message' => 'Student not found in this school.'], 404);
         }
 

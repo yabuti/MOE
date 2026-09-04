@@ -1,8 +1,8 @@
 const nav: Record<string, string> = {
     'nav.dashboard': 'Marsarii',
     'nav.myProgress': 'Iddoo Koo',
-    'nav.parentDashboard': 'Marsarii Abbaa',
-    'nav.schoolDashboard': 'Marsarii Mana Barumsaa',
+    'nav.parentDashboard': 'Marsarii',
+    'nav.schoolDashboard': 'Marsarii',
     'nav.students': 'Barattoota',
     'nav.schools': 'Mana Barumsaa',
     'nav.nodeTypes': 'Akaakuu Nodii',

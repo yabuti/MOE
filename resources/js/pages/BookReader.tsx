@@ -627,6 +627,14 @@ function buildChapterText(chapter: Chapter): string {
     for (const block of chapter.content_blocks) {
         if (block.type === 'text' && block.content) {
             parts.push(block.content);
+        } else if (block.type === 'pdf') {
+            const readAloud =
+                block.data && typeof block.data === 'object' && typeof (block.data as Record<string, unknown>).read_aloud_text === 'string'
+                    ? ((block.data as Record<string, unknown>).read_aloud_text as string)
+                    : '';
+            if (readAloud.trim()) {
+                parts.push(readAloud);
+            }
         }
     }
     return parts.join('. ');
@@ -1035,12 +1043,6 @@ export default function BookReader() {
                                                 ))}
                                             </div>
 
-                                            {ch.content_blocks.length === 0 && (
-                                                <p className="py-6 text-center text-sm italic text-gray-400 dark:text-gray-500">
-                                                    {t('bookReader.noContentInChapter')}
-                                                </p>
-                                            )}
-
                                             {/* End of Chapter Exam */}
                                             {ch.exam && (
                                                 <ChapterExamCard
@@ -1114,16 +1116,6 @@ export default function BookReader() {
                                         <BlockRenderer key={block.id} block={block} />
                                     ))}
                                 </div>
-
-                                {visibleChapters[currentChapter].content_blocks.length === 0 && (
-                                    <Card className="mt-4">
-                                        <CardBody>
-                                            <p className="py-8 text-center text-sm italic text-gray-400 dark:text-gray-500">
-                                                {t('bookReader.noContentInChapter')}
-                                            </p>
-                                        </CardBody>
-                                    </Card>
-                                )}
 
                                 {/* End of Chapter Exam */}
                                 {visibleChapters[currentChapter].exam && (

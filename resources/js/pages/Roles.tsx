@@ -10,7 +10,7 @@ import { EyeIcon, ShieldCheckIcon, PencilSquareIcon, PlusIcon, TrashIcon } from 
 interface RoleItem extends Role {}
 
 const permissionGroups: { label: string; permissions: string[] }[] = [
-    { label: 'Dashboard', permissions: ['view dashboard'] },
+    { label: 'Dashboard', permissions: ['view dashboard', 'view school dashboard', 'view parent dashboard'] },
     {
         label: 'Users',
         permissions: ['view users', 'create users', 'edit users', 'delete users'],
@@ -42,6 +42,10 @@ const permissionGroups: { label: string; permissions: string[] }[] = [
     {
         label: 'Student Tracking',
         permissions: ['view student progress', 'view reports'],
+    },
+    {
+        label: 'School Management',
+        permissions: ['manage students', 'view students', 'register students', 'evaluate students', 'edit school settings'],
     },
     {
         label: 'System',

@@ -20,13 +20,20 @@ class AuthController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'role' => ['sometimes', 'string', 'in:student'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:4096'],
         ]);
 
-        $user = User::create([
+        $data = [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-        ]);
+        ];
+
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = (new User)->storeAvatar($request->file('avatar'));
+        }
+
+        $user = User::create($data);
 
         $user->assignRole($validated['role'] ?? 'student');
 
@@ -65,6 +72,35 @@ class AuthController extends Controller
         ]);
     }
 
+    public function parentRegister(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'confirmed', Password::defaults()],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:4096'],
+        ]);
+
+        $data = [
+            'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+        ];
+
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = (new User)->storeAvatar($request->file('avatar'));
+        }
+
+        $user = User::create($data);
+
+        $user->assignRole('parent');
+
+        return response()->json([
+            'message' => 'Parent registered successfully.',
+        ], 201);
+    }
+
     public function logout(Request $request): JsonResponse
     {
         AuditLogger::record('logout', $request->user());
@@ -92,9 +128,16 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:4096'],
         ]);
 
-        $user->update($validated);
+        $data = ['name' => $validated['name']];
+
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = $user->storeAvatar($request->file('avatar'));
+        }
+
+        $user->update($data);
 
         return response()->json([
             'message' => 'Profile updated successfully.',
@@ -138,6 +181,7 @@ class AuthController extends Controller
         $user->load('roles', 'school:id,name,code');
 
         $payload = $user->toArray();
+        $payload['avatar_url'] = $user->avatar_url;
         $payload['permissions'] = $user->getAllPermissions()->pluck('name')->values()->all();
 
         return $payload;

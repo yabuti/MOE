@@ -15,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'generated_password', 'parent_user_id', 'school_id'])]
+#[Fillable(['name', 'email', 'password', 'generated_password', 'parent_user_id', 'school_id', 'avatar'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -33,6 +33,30 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Absolute URL to the user's profile picture, or null when absent.
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (! $this->avatar) {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->avatar);
+    }
+
+    /**
+     * Persist an uploaded profile image to the public disk and return its path.
+     * The file is expected to pass `image` validation before this is called.
+     *
+     * @return string the stored path (relative to the public disk)
+     */
+    public function storeAvatar(\Illuminate\Http\UploadedFile $file): string
+    {
+        $path = $file->store('avatars', 'public');
+        return (string) $path;
     }
 
     public function schools(): BelongsToMany

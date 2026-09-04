@@ -28,6 +28,7 @@ const roles: Record<string, string> = {
     'roles.groupContent': 'ይዘት',
     'roles.groupExams': 'ፈተናዎች',
     'roles.groupStudentTracking': 'የተማሪ ተከታይ',
+    'roles.groupSchoolManagement': 'የትምህርት ቤት አስተዳደር',
     'roles.groupSystem': 'ስርዓት',
 };
 export default roles;

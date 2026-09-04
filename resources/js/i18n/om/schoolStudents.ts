@@ -18,6 +18,7 @@ const schoolStudents: Record<string, string> = {
     'schoolStudents.grade': 'Dabarta',
     'schoolStudents.selectGrade': 'Dabarta filadhu\u2026',
     'schoolStudents.selectSchool': 'Mana barumsaa filadhu\u2026',
+    'schoolStudents.avatarHint': 'Suuraa eeyyamaa barattootaa fe\'i.',
     'schoolStudents.deleteTitle': 'Barattoota mara',
     'schoolStudents.deleteMessage': 'Ati {name} maruuf jirta?',
 };

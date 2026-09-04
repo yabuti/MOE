@@ -1,5 +1,5 @@
 const schoolDashboard: Record<string, string> = {
-    'schoolDashboard.title': 'የትምህርት ቤት ዳሽቦርድ',
+    'schoolDashboard.title': 'ዳሽቦርድ',
     'schoolDashboard.description': 'የትምህርት ቤትዎ እንቅስቃሴ ማጠቃለያ',
     'schoolDashboard.totalStudents': 'ጠቅላላ ተማሪዎች',
     'schoolDashboard.activeStudents': 'ንቁ ተማሪዎች',

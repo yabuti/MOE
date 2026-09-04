@@ -123,6 +123,7 @@ class ParentController extends Controller
                 'id' => $child->id,
                 'name' => $child->name,
                 'email' => $child->email,
+                'avatar_url' => $child->avatar_url,
                 'parent_name' => $child->parentUser?->name,
                 'current_grade' => $current?->grade?->name,
                 'school' => $current?->school?->name,
@@ -150,6 +151,7 @@ class ParentController extends Controller
             'id' => $child->id,
             'name' => $child->name,
             'email' => $child->email,
+            'avatar_url' => $child->avatar_url,
             'parent_name' => $child->parentUser?->name,
             'linked_at' => $child->parent_user_id ? $child->updated_at : null,
             'summary' => [

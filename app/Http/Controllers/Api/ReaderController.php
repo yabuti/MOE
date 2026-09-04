@@ -132,7 +132,7 @@ class ReaderController extends Controller
 
         $previousChapterPassed = true; // Chapter 1 is always unlocked
 
-        $chapters = $chaptersRaw->map(function ($chapter, $index) use (&$previousChapterPassed, $passedExamIds, $user) {
+        $chapters = $chaptersRaw->map(function ($chapter, $index) use (&$previousChapterPassed, $passedExamIds, $user, $readOnly) {
             $exam = $chapter->exams->first();
             $examPassed = $exam ? in_array($exam->id, $passedExamIds) : true;
             $hasExam = (bool) $exam;

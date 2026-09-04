@@ -6,7 +6,7 @@ const parent: Record<string, string> = {
     'parent.books': 'books',
     'parent.unlinkConfirm': 'Unlink this child? You can re-link them later.',
     'parent.childUnlinked': 'Child unlinked.',
-    'parent.bannerSubtitle': 'Parent Dashboard',
+    'parent.bannerSubtitle': 'Dashboard',
     'parent.bannerTitle': "Track your children's learning 📚",
     'parent.bannerDescription': "Link your children's accounts and follow their reading progress, understanding, and exam results.",
     'parent.linkChild': 'Link a child',

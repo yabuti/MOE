@@ -50,6 +50,9 @@ class RolePermissionSeeder extends Seeder
             'manage students', 'view students', 'register students', 'evaluate students',
             'edit school settings',
 
+            // Dashboards
+            'view school dashboard', 'view parent dashboard',
+
             // System
             'view audit logs', 'view notifications', 'send notifications',
         ];
@@ -73,7 +76,7 @@ class RolePermissionSeeder extends Seeder
 
         $parent = Role::firstOrCreate(['name' => 'parent']);
         $parent->syncPermissions([
-            'view dashboard',
+            'view dashboard', 'view parent dashboard',
             'view catalog', 'view content',
             'view student progress', 'view reports',
         ]);
@@ -86,7 +89,7 @@ class RolePermissionSeeder extends Seeder
 
         $school = Role::firstOrCreate(['name' => 'school']);
         $school->syncPermissions([
-            'view dashboard',
+            'view dashboard', 'view school dashboard',
             'view catalog', 'view content', 'view exams',
             'view student progress', 'view reports',
             'manage students', 'view students', 'register students', 'evaluate students',

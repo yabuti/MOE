@@ -25,6 +25,7 @@ Route::prefix('v1')->group(function () {
     // Public auth routes
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/parent/register', [AuthController::class, 'parentRegister']);
 
     // Authenticated routes
     Route::middleware('auth:sanctum')->group(function () {

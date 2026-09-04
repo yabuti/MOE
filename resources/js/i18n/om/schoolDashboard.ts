@@ -1,5 +1,5 @@
 const schoolDashboard: Record<string, string> = {
-    'schoolDashboard.title': 'Marsarii Mana Barumsaa',
+    'schoolDashboard.title': 'Marsarii',
     'schoolDashboard.description': "Mul\u2019annoof mana barumsaa kee",
     'schoolDashboard.totalStudents': 'Barattoota Hunda',
     'schoolDashboard.activeStudents': 'Barattoota Kahayyamaa',

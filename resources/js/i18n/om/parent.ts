@@ -6,7 +6,7 @@ const parent: Record<string, string> = {
     'parent.books': 'Keetabuu',
     'parent.unlinkConfirm': 'Abbaa koo dhiisi? Biroo deebi\u2019u ni dandeessa.',
     'parent.childUnlinked': 'Abbaa dhiifame.',
-    'parent.bannerSubtitle': 'Marsarii Abbaa',
+    'parent.bannerSubtitle': 'Marsarii',
     'parent.bannerTitle': 'Barnoota sanyii kee hordofii \ud83d\udcda',
     'parent.bannerDescription': "Akkaataa sanyii kee adda baasii barnootaa, xiyyeeffannoo fi keegajjesaa hordofii.",
     'parent.linkChild': 'Sanyii adda baasi',

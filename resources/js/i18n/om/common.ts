@@ -31,5 +31,9 @@ const common: Record<string, string> = {
     'common.unspecified': 'Filatamne',
     'common.dash': '\u2014',
     'common.perms': 'Hayyamamtoota',
+    'common.avatar': 'Suuraa Eeyyamaa',
+    'common.chooseImage': 'Suuraa Filadhu',
+    'common.noImageSelected': 'Suuraan hin filatamne',
+    'common.avatarHint': 'Suuraa eeyyamaa fe\'i (JPG, PNG ykn WebP, hanga 4MB).',
 };
 export default common;

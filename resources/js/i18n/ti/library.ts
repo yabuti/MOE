@@ -20,7 +20,6 @@ const library: Record<string, string> = {
     'bookReader.chapterLocked': 'ክፍሊ {number} ተዒሙ ኣሎ',
     'bookReader.chapterLockedHint': 'ነዚ ክፍሊ ንምኽፋት፣ ናይ <i>ክፍሊ {number}</i> ናይ ወዳእታ-ክፍሊ ፈተና ክትፅዕርን ክትሓልፍን ኣለካ።',
     'bookReader.goToChapterExam': 'ናብ ፈተና ክፍሊ {number} ኪዱ →',
-    'bookReader.noContentInChapter': 'ኣብዚ ክፍሊ እዚ እድኻ ትሕዝቶ የለን።',
     'bookReader.endOfBook': 'መወዳእታ መጽሐፍ',
     'bookReader.chapterOf': 'ክፍሊ {current} ካብ {total}',
     'bookReader.previous': 'ቀዳማይ',

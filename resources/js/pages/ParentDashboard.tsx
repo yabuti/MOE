@@ -68,10 +68,14 @@ function ChildCard({
                     : 'border-gray-200 dark:border-night-300 bg-white dark:bg-night-100 hover:-translate-y-0.5 hover:shadow-md'
             }`}
         >
-            <div className="flex items-start justify-between">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br ${gradient} text-lg font-bold text-white`}>
-                    {child.name.charAt(0).toUpperCase()}
-                </div>
+                <div className="flex items-start justify-between">
+                    {child.avatar_url ? (
+                        <img src={child.avatar_url} alt={child.name} className="h-12 w-12 rounded-full object-cover border border-gray-200 dark:border-night-300" />
+                    ) : (
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br ${gradient} text-lg font-bold text-white`}>
+                            {child.name.charAt(0).toUpperCase()}
+                        </div>
+                    )}
                 <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onDetach(); }}

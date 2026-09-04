@@ -28,6 +28,7 @@ const roles: Record<string, string> = {
     'roles.groupContent': 'Qabiyyee',
     'roles.groupExams': 'Keegajjesaa',
     'roles.groupStudentTracking': 'Hordofii Barattoota',
+    'roles.groupSchoolManagement': 'Tooftaa Dorchan',
     'roles.groupSystem': 'Iddaa',
 };
 export default roles;

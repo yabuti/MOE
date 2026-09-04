@@ -1,8 +1,8 @@
 const nav: Record<string, string> = {
     'nav.dashboard': 'Dashboard',
     'nav.myProgress': 'My Progress',
-    'nav.parentDashboard': 'Parent Dashboard',
-    'nav.schoolDashboard': 'School Dashboard',
+    'nav.parentDashboard': 'Dashboard',
+    'nav.schoolDashboard': 'Dashboard',
     'nav.students': 'Students',
     'nav.schools': 'Schools',
     'nav.nodeTypes': 'Node Types',

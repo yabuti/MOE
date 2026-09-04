@@ -39,6 +39,7 @@ const schools: Record<string, string> = {
     'schools.registerSuccess': 'Barattoota sirrii galmaa\u2019ame',
     'schools.shareCredentials': 'Galmaa\u2019ii kana barattoota yk mana barumsaa top\u2019aa qabatan geessisi.',
     'schools.usernameEmail': 'Maqaa istii\u2019amtoota (imayilii)',
+    'schools.avatarHint': 'Suuraa eeyyamaa barattootaa fe\'i.',
     'schools.academicYear': 'Waggaa Barnootaa',
     'schools.passwordWarning': 'Jechi iyyuu lamaatii tokko oo\u2019e mul\u2019ata. Ka\u2019i.\u2019i.',
     'schools.adminCredentialsTitle': 'Mana Barumsaa Qnamame \u2014 Galmaa\u2019ii Admin',

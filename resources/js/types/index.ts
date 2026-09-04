@@ -7,6 +7,8 @@ export interface User {
     updated_at?: string;
     school_id?: number | null;
     school?: { id: number; name: string; code?: string } | null;
+    avatar?: string | null;
+    avatar_url?: string | null;
     roles?: Role[];
     permissions?: string[];
 }
@@ -235,6 +237,7 @@ export interface Child {
     id: number;
     name: string;
     email: string;
+    avatar_url?: string | null;
     parent_name?: string | null;
     linked_at?: string | null;
     summary: ChildSummary;

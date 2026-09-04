@@ -6,7 +6,7 @@ const parent: Record<string, string> = {
     'parent.books': 'መጽሐፎች',
     'parent.unlinkConfirm': 'ልጁን መለያ ማጥፋት? ቆይቶ መልስ ይችላሉ።',
     'parent.childUnlinked': 'ልጁ ተለይቷል።',
-    'parent.bannerSubtitle': 'የወላይት ዳሽቦርድ',
+    'parent.bannerSubtitle': 'ዳሽቦርድ',
     'parent.bannerTitle': 'የልጆችዎን ትምህርት ይከታተሉ 📚',
     'parent.bannerDescription': 'የልጆችዎን መለያዎች በቀላሉ ማንበብ ለውጥ እና ፈተና ውጤቶችን ይከታተሉ።',
     'parent.linkChild': 'ልጅ ያያይዙ',

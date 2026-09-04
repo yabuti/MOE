@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Pagination, Select, Table } from '../components/ui';
 import { NameFields, combineName, type NameParts } from '../components/NameFields';
 import type { RegisterStudentResult, School } from '../types';
-import { MagnifyingGlassIcon, PencilSquareIcon, PlusIcon, TrashIcon, UserPlusIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PencilSquareIcon, PlusIcon, TrashIcon, UserPlusIcon, EyeIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
 interface SchoolItem extends School {}
 
@@ -75,6 +75,8 @@ export default function Schools() {
     const [grades, setGrades] = useState<CatalogTreeItem[]>([]);
     const [regForm, setRegForm] = useState({ name: '', student_id: '', grade_id: '' });
     const [regName, setRegName] = useState<NameParts>({ first_name: '', middle_name: '', last_name: '' });
+    const [regAvatar, setRegAvatar] = useState<File | null>(null);
+    const regAvatarRef = useRef<HTMLInputElement>(null);
     const [regResult, setRegResult] = useState<RegisterStudentResult | null>(null);
     const [registering, setRegistering] = useState(false);
 
@@ -198,15 +200,19 @@ export default function Schools() {
         if (!registerSchool) return;
         setRegistering(true);
         try {
-            const { data } = await api.post('/enrollments/register', {
-                school_id: registerSchool.id,
-                name: combineName(regName),
-                student_id: regForm.student_id || undefined,
-                grade_id: Number(regForm.grade_id),
-            });
+            const formData = new FormData();
+            formData.append('school_id', String(registerSchool.id));
+            formData.append('name', combineName(regName));
+            if (regForm.student_id) formData.append('student_id', regForm.student_id);
+            formData.append('grade_id', String(regForm.grade_id));
+            if (regAvatar) formData.append('avatar', regAvatar);
+
+            const { data } = await api.post('/enrollments/register', formData);
             setRegResult(data);
             setRegForm({ name: '', student_id: '', grade_id: '' });
             setRegName({ first_name: '', middle_name: '', last_name: '' });
+            setRegAvatar(null);
+            if (regAvatarRef.current) regAvatarRef.current.value = '';
         } catch (err) {
             toast.error(getErrorMessage(err));
         } finally {
@@ -409,6 +415,33 @@ export default function Schools() {
                             <option value="">{t('schools.selectGrade')}</option>
                             {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                         </Select>
+                        <div>
+                            <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">{t('common.avatar')}</p>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    ref={regAvatarRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => setRegAvatar(e.target.files?.[0] ?? null)}
+                                />
+                                <Button variant="secondary" type="button" onClick={() => regAvatarRef.current?.click()}>
+                                    <PhotoIcon className="h-4 w-4" />
+                                    {t('common.chooseImage')}
+                                </Button>
+                                {regAvatar && (
+                                    <img
+                                        src={URL.createObjectURL(regAvatar)}
+                                        alt="avatar"
+                                        className="h-10 w-10 rounded-full object-cover border border-gray-200 dark:border-night-300"
+                                    />
+                                )}
+                                {!regAvatar && (
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('common.noImageSelected')}</span>
+                                )}
+                            </div>
+                            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{t('schools.avatarHint')}</p>
+                        </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                             {t('schools.registerInfo')}
                         </p>

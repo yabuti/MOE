@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import type { BookProgress, ProgressReport } from '../types';
-import { Badge, Card, CardBody, CardHeader } from './ui';
+import { Badge, Card, CardBody, CardHeader, Pagination } from './ui';
 
 function PercentBar({ value, color = 'bg-brand-600' }: { value: number; color?: string }) {
     return (
@@ -92,9 +93,19 @@ function BookProgressCard({ book }: { book: BookProgress }) {
 }
 
 export default function ProgressView({ report, emptyTitle }: { report: ProgressReport | null; emptyTitle: string }) {
+    const [page, setPage] = useState(1);
+    const perPage = 6;
+
+    useEffect(() => {
+        setPage(1);
+    }, [report]);
+
     if (!report) {
         return <Card><CardBody><div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">No progress data yet.</div></CardBody></Card>;
     }
+
+    const lastPage = Math.max(1, Math.ceil(report.books.length / perPage));
+    const pageBooks = report.books.slice((page - 1) * perPage, page * perPage);
 
     return (
         <div className="space-y-6">
@@ -119,7 +130,12 @@ export default function ProgressView({ report, emptyTitle }: { report: ProgressR
             {report.books.length === 0 ? (
                 <Card><CardBody><div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">{emptyTitle}</div></CardBody></Card>
             ) : (
-                report.books.map((book) => <BookProgressCard key={book.id} book={book} />)
+                <CardBody className="space-y-6 p-0">
+                    <div className="space-y-6 p-5">
+                        {pageBooks.map((book) => <BookProgressCard key={book.id} book={book} />)}
+                    </div>
+                    <Pagination page={page} lastPage={lastPage} total={report.books.length} onPage={setPage} />
+                </CardBody>
             )}
         </div>
     );

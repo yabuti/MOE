@@ -31,5 +31,9 @@ const common: Record<string, string> = {
     'common.unspecified': 'ያልተገለጸ',
     'common.dash': '—',
     'common.perms': 'ፍቃድ',
+    'common.avatar': 'የመገለጫ ምስል',
+    'common.chooseImage': 'ምስል ምረጥ',
+    'common.noImageSelected': 'ምንም ምስል አልተመረጠም',
+    'common.avatarHint': 'የመገለጫ ምስል ስቀል (JPG፣ PNG ወይም WebP፣ እስከ 4MB)።',
 };
 export default common;

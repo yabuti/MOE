@@ -39,6 +39,7 @@ const schools: Record<string, string> = {
     'schools.registerSuccess': 'Student registered successfully',
     'schools.shareCredentials': 'Share these credentials with the student or their school administrator.',
     'schools.usernameEmail': 'Username (email)',
+    'schools.avatarHint': 'Upload the student\'s profile picture.',
     'schools.academicYear': 'Academic Year',
     'schools.passwordWarning': 'The password is shown only once. Make sure to save it.',
     'schools.adminCredentialsTitle': 'School Created — Admin Credentials',
