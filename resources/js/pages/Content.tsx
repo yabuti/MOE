@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select, Textarea } from '../components/ui';
 import type { ContentBlock, Media } from '../types';
 import { ArrowDownIcon, ArrowLeftIcon, ArrowUpIcon, LinkIcon, PencilSquareIcon, PhotoIcon, PlusIcon, TrashIcon, VideoCameraIcon } from '@heroicons/react/24/outline';
@@ -18,6 +19,7 @@ const emptyForm: ContentItem = { id: 0, catalog_node_id: 0, type: 'text', title:
 interface TreeNode {
     id: number;
     name: string;
+    type: string | null;
     children: TreeNode[];
 }
 
@@ -34,12 +36,18 @@ export default function Content() {
     const { nodeId } = useParams();
     const navigate = useNavigate();
     const { hasPermission } = useAuth();
+    const { t } = useLanguage();
 
     const [nodeName, setNodeName] = useState('');
     const [tree, setTree] = useState<TreeNode[]>([]);
     const [blocks, setBlocks] = useState<ContentItem[]>([]);
     const [media, setMedia] = useState<Media[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const [categoryId, setCategoryId] = useState('');
+    const [gradeId, setGradeId] = useState('');
+    const [bookId, setBookId] = useState('');
+    const [chapterId, setChapterId] = useState('');
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<ContentItem | null>(null);
@@ -197,12 +205,12 @@ export default function Content() {
 
             if (editing) {
                 await api.put(`/content/${editing.id}`, payload);
-                toast.success('Content block updated');
+                toast.success(t('content.updated'));
                 setModalOpen(false);
                 await renumber(Number(nodeId));
             } else {
                 const { data: created } = await api.post<{ content_block: ContentItem }>(`/nodes/${nodeId}/content`, payload);
-                toast.success('Content block added');
+                toast.success(t('content.created'));
                 setModalOpen(false);
                 const insertIndex = insertIndexRef.current;
                 insertIndexRef.current = null;
@@ -220,7 +228,7 @@ export default function Content() {
         setDeleting(true);
         try {
             await api.delete(`/content/${deleteTarget.id}`);
-            toast.success('Content block deleted');
+            toast.success(t('content.deleted'));
             setDeleteTarget(null);
             if (nodeId) await renumber(Number(nodeId));
         } catch (err) {
@@ -235,29 +243,57 @@ export default function Content() {
     const canDelete = hasPermission('delete content');
 
     if (!nodeId) {
+        const categories = allNodes.filter((n) => n.type === 'category');
+        const selectedCategory = categories.find((c) => c.id === Number(categoryId));
+        const grades = selectedCategory?.children ?? [];
+        const selectedGrade = grades.find((g) => g.id === Number(gradeId));
+        const books = selectedGrade?.children ?? [];
+        const selectedBook = books.find((b) => b.id === Number(bookId));
+        const chapters = selectedBook?.children ?? [];
+
         return (
-            <div>
-                <PageHeader title="Content" description="Select a catalog node (e.g. a chapter) to manage its content and media" />
+            <div className="min-h-screen bg-gray-50 dark:bg-night-200">
+                <PageHeader title={t('content.title')} description={t('content.descriptionNoNode')} />
                 {loading ? (
-                    <Card><CardBody><div className="py-10 text-center text-sm text-gray-500">Loading catalog…</div></CardBody></Card>
+                    <Card><CardBody><div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">{t('content.loading')}</div></CardBody></Card>
+                ) : categories.length === 0 ? (
+                    <Card>
+                        <CardBody>
+                            <EmptyState title={t('content.noCategories')} description={t('content.createCatalogFirst')} />
+                        </CardBody>
+                    </Card>
                 ) : (
                     <Card>
                         <CardBody>
-                            {tree.length === 0 ? (
-                                <EmptyState title="No catalog nodes" description="Create catalog nodes first." />
-                            ) : (
-                                <div className="space-y-1">
-                                    {allNodes.map((n) => (
-                                        <Link
-                                            key={n.id}
-                                            to={`/content/${n.id}`}
-                                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700"
-                                        >
-                                            <span className="text-gray-400">▸</span> {n.name}
-                                        </Link>
-                                    ))}
+                            <div className="max-w-5xl space-y-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    <Select label={t('content.step1Category')} value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setGradeId(''); setBookId(''); setChapterId(''); }}>
+                                        <option value="">{t('content.selectCategory')}</option>
+                                        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </Select>
+                                    <Select label={t('content.step2Grade')} value={gradeId} onChange={(e) => { setGradeId(e.target.value); setBookId(''); setChapterId(''); }} disabled={!categoryId}>
+                                        <option value="">{t('content.selectGrade')}</option>
+                                        {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                    </Select>
+                                    <Select label={t('content.step3Book')} value={bookId} onChange={(e) => { setBookId(e.target.value); setChapterId(''); }} disabled={!gradeId}>
+                                        <option value="">{t('content.selectBook')}</option>
+                                        {books.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </Select>
+                                    <Select
+                                        label={t('content.step4Chapter')}
+                                        value={chapterId}
+                                        onChange={(e) => { const id = e.target.value; setChapterId(id); if (id) navigate(`/content/${id}`); }}
+                                        disabled={!bookId}
+                                    >
+                                        <option value="">{t('content.selectChapter')}</option>
+                                        {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </Select>
                                 </div>
-                            )}
+                                {!categoryId && <p className="text-sm text-gray-500 dark:text-gray-400">{t('content.hintCategory')}</p>}
+                                {categoryId && !gradeId && <p className="text-sm text-gray-500 dark:text-gray-400">{t('content.hintGrade')}</p>}
+                                {gradeId && !bookId && <p className="text-sm text-gray-500 dark:text-gray-400">{t('content.hintBook')}</p>}
+                                {bookId && !chapterId && <p className="text-sm text-gray-500 dark:text-gray-400">{t('content.hintChapter')}</p>}
+                            </div>
                         </CardBody>
                     </Card>
                 )}
@@ -266,18 +302,18 @@ export default function Content() {
     }
 
     return (
-        <div>
+        <div className="min-h-screen bg-gray-50 dark:bg-night-200">
             <PageHeader
-                title={nodeName || 'Content'}
-                description="Layer text and media exactly where you want them in this chapter"
+                title={nodeName || t('content.title')}
+                description={t('content.descriptionWithNode')}
                 actions={
                     <>
                         <Button variant="secondary" onClick={() => navigate('/content')}>
-                            <ArrowLeftIcon className="h-5 w-5" /> Catalog
+                            <ArrowLeftIcon className="h-5 w-5" /> {t('content.backToCatalog')}
                         </Button>
                         {canCreate && (
                             <Button onClick={openCreate}>
-                                <PlusIcon className="h-5 w-5" /> Add Block
+                                <PlusIcon className="h-5 w-5" /> {t('content.addBlock')}
                             </Button>
                         )}
                     </>
@@ -286,21 +322,21 @@ export default function Content() {
 
             <Card>
                 {loading ? (
-                    <CardBody><div className="py-10 text-center text-sm text-gray-500">Loading content…</div></CardBody>
+                    <CardBody><div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">{t('content.loadingContent')}</div></CardBody>
                 ) : blocks.length === 0 ? (
                     <CardBody>
                         <EmptyState
-                            title="No content yet"
-                            description="Add a text block, image, or video. You can insert them at any exact position."
+                            title={t('content.noContent')}
+                            description={t('content.addFirstBlockHint')}
                             action={canCreate ? (
                                 <Button onClick={openCreate}>
-                                    <PlusIcon className="h-5 w-5" /> Add First Block
+                                    <PlusIcon className="h-5 w-5" /> {t('content.addFirstBlock')}
                                 </Button>
                             ) : undefined}
                         />
                     </CardBody>
                 ) : (
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-gray-100 dark:divide-night-300">
                         {blocks.map((block, index) => {
                             const url = resolveMediaUrl(block, '/storage/');
                             const isVideo = block.type === 'video';
@@ -309,17 +345,17 @@ export default function Content() {
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                                             <Badge variant="blue">{block.type}</Badge>
-                                            {block.is_active ? <Badge variant="green">active</Badge> : <Badge variant="gray">inactive</Badge>}
-                                            <span className="text-xs text-gray-400">pos {block.position ?? index}</span>
-                                            {block.media_id && <Badge variant="purple">media</Badge>}
+                                            {block.is_active ? <Badge variant="green">{t('content.active')}</Badge> : <Badge variant="gray">{t('content.inactive')}</Badge>}
+                                            <span className="text-xs text-gray-400 dark:text-gray-500">{t('content.positionPrefix')} {block.position ?? index}</span>
+                                            {block.media_id && <Badge variant="purple">{t('content.media')}</Badge>}
                                         </div>
                                         <div className="flex shrink-0 items-center gap-1">
                                             {canCreate && (
                                                 <>
-                                                    <Button variant="ghost" className="px-1.5 py-1" title="Insert above" onClick={() => openCreateAtPosition(index)}>
+                                                    <Button variant="ghost" className="px-1.5 py-1" title={t('content.insertAbove')} onClick={() => openCreateAtPosition(index)}>
                                                         <ArrowUpIcon className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="ghost" className="px-1.5 py-1" title="Insert below" onClick={() => openCreateAtPosition(index + 1)}>
+                                                    <Button variant="ghost" className="px-1.5 py-1" title={t('content.insertBelow')} onClick={() => openCreateAtPosition(index + 1)}>
                                                         <ArrowDownIcon className="h-4 w-4" />
                                                     </Button>
                                                 </>
@@ -330,17 +366,17 @@ export default function Content() {
                                                 </Button>
                                             )}
                                             {canDelete && (
-                                                <Button variant="ghost" className="px-1.5 py-1 text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(block)}>
+                                                <Button variant="ghost" className="px-1.5 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => setDeleteTarget(block)}>
                                                     <TrashIcon className="h-4 w-4" />
                                                 </Button>
                                             )}
                                         </div>
                                     </div>
 
-                                    {block.title && <p className="mt-2 font-medium text-gray-900">{block.title}</p>}
+                                    {block.title && <p className="mt-2 font-medium text-gray-900 dark:text-white">{block.title}</p>}
 
                                     {block.type === 'text' && block.content && (
-                                        <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">{block.content}</p>
+                                        <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{block.content}</p>
                                     )}
 
                                     {url && (block.type === 'image' || isVideo) && (
@@ -348,9 +384,9 @@ export default function Content() {
                                             {isVideo ? (
                                                 <video src={url} controls className="max-h-80 w-full rounded-lg bg-black" />
                                             ) : (
-                                                <img src={url} alt={block.title ?? 'media'} className="max-h-96 rounded-lg border border-gray-200 object-contain" />
+                                                <img src={url} alt={block.title ?? 'media'} className="max-h-96 rounded-lg border border-gray-200 dark:border-night-300 object-contain" />
                                             )}
-                                            <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+                                            <p className="mt-1 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                                                 <LinkIcon className="h-3 w-3" /> {url}
                                             </p>
                                         </div>
@@ -365,48 +401,48 @@ export default function Content() {
             <Modal
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
-                title={editing ? 'Edit Content Block' : 'Add Content Block'}
+                title={editing ? t('content.editTitle') : t('content.addTitle')}
                 size="lg"
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saving || uploading}>Cancel</Button>
-                        <Button type="submit" form="content-form" loading={saving || uploading}>{editing ? 'Save' : 'Add'}</Button>
+                        <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saving || uploading}>{t('common.cancel')}</Button>
+                        <Button type="submit" form="content-form" loading={saving || uploading}>{editing ? t('common.save') : t('common.add')}</Button>
                     </>
                 }
             >
                 <form id="content-form" onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <Select label="Type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} required>
-                            {blockTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+                        <Select label={t('content.blockType')} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} required>
+                            {blockTypes.map((bt) => <option key={bt} value={bt}>{bt === 'text' ? t('content.text') : bt === 'image' ? t('content.image') : bt === 'video' ? t('content.video') : bt === 'audio' ? t('content.audio') : t('content.pdfType')}</option>)}
                         </Select>
-                        <Input label="Position" type="number" step="0.5" value={form.position} onChange={(e) => setForm({ ...form, position: Number(e.target.value) })} />
-                        <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                        <Input label={t('common.position')} type="number" step="0.5" value={form.position} onChange={(e) => setForm({ ...form, position: Number(e.target.value) })} />
+                        <Input label={t('common.title')} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
                     </div>
 
                     {form.type === 'text' && (
-                        <Textarea label="Content" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={4} />
+                        <Textarea label={t('common.description')} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={4} />
                     )}
 
                     {(form.type === 'image' || form.type === 'video') && (
-                        <div className="space-y-4 rounded-lg border border-gray-200 p-4">
-                            <p className="text-sm font-medium text-gray-700">Media</p>
+                        <div className="space-y-4 rounded-lg border border-gray-200 dark:border-night-300 p-4">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t('content.mediaSection')}</p>
 
                             <div>
-                                <p className="mb-1 text-xs font-medium text-gray-500">1 · Paste a URL</p>
+                                <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">1 · {t('content.pasteUrl')}</p>
                                 <div className="flex items-center gap-2">
                                     {form.type === 'video'
-                                        ? <VideoCameraIcon className="h-5 w-5 shrink-0 text-gray-400" />
-                                        : <PhotoIcon className="h-5 w-5 shrink-0 text-gray-400" />}
+                                        ? <VideoCameraIcon className="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500" />
+                                        : <PhotoIcon className="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500" />}
                                     <Input
                                         value={mediaUrl}
-                                        placeholder={form.type === 'video' ? 'https://…/video.mp4' : 'https://…/image.png'}
+                                        placeholder={form.type === 'video' ? t('content.videoPlaceholder') : t('content.imagePlaceholder')}
                                         onChange={(e) => setMediaUrl(e.target.value)}
                                     />
                                 </div>
                             </div>
 
-                            <div className="border-t border-gray-100 pt-3">
-                                <p className="mb-1 text-xs font-medium text-gray-500">2 · Or upload a new file</p>
+                            <div className="border-t border-gray-100 dark:border-night-300 pt-3">
+                                <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">2 · {t('content.uploadNew')}</p>
                                 <div className="flex items-center gap-2">
                                     <input
                                         ref={fileInputRef}
@@ -416,37 +452,37 @@ export default function Content() {
                                         onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
                                     />
                                     <Button variant="secondary" type="button" onClick={() => fileInputRef.current?.click()}>
-                                        Choose file
+                                        {t('content.chooseFile')}
                                     </Button>
-                                    <span className="text-sm text-gray-500">{uploadFile ? uploadFile.name : 'No file selected'}</span>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">{uploadFile ? uploadFile.name : t('content.noFileSelected')}</span>
                                 </div>
                             </div>
 
-                            <div className="border-t border-gray-100 pt-3">
-                                <p className="mb-1 text-xs font-medium text-gray-500">3 · Or pick from the media library</p>
+                            <div className="border-t border-gray-100 dark:border-night-300 pt-3">
+                                <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">3 · {t('content.pickFromLibrary')}</p>
                                 <Select value={form.media_id ? String(form.media_id) : ''} onChange={(e) => setForm({ ...form, media_id: e.target.value ? Number(e.target.value) : undefined })}>
-                                    <option value="">None</option>
+                                    <option value="">{t('content.none')}</option>
                                     {media.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                                 </Select>
                             </div>
 
-                            <p className="text-xs text-gray-400">
-                                Using a URL or uploading a new file will be attached to this block at the exact position above/below.
+                            <p className="text-xs text-gray-400 dark:text-gray-500">
+                                {t('content.mediaInfo')}
                             </p>
                         </div>
                     )}
 
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
-                        Active
+                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                        <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="h-4 w-4 rounded border-gray-300 dark:border-night-300 text-brand-600 focus:ring-brand-500" />
+                        {t('content.activeLabel')}
                     </label>
                 </form>
             </Modal>
 
             <ConfirmDialog
                 open={!!deleteTarget}
-                title="Delete content block"
-                message="Are you sure you want to delete this content block?"
+                title={t('content.deleteTitle')}
+                message={t('content.deleteMessage')}
                 loading={deleting}
                 onConfirm={() => void handleDelete()}
                 onClose={() => setDeleteTarget(null)}

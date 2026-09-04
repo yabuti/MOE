@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select, Textarea, statusVariant } from '../components/ui';
 import type { CatalogNode, NodeType } from '../types';
 import { ChevronDownIcon, ChevronRightIcon, DocumentTextIcon, FolderIcon, PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -34,6 +35,7 @@ const emptyForm = {
 
 export default function Catalog() {
     const { hasPermission } = useAuth();
+    const { t } = useLanguage();
     const [tree, setTree] = useState<TreeItem[]>([]);
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
     const [loading, setLoading] = useState(true);
@@ -56,15 +58,9 @@ export default function Catalog() {
             ]);
             setTree(treeData.tree);
             setNodeTypes(typesData.node_types);
-            const ids = new Set<number>();
-            const collect = (nodes: TreeItem[]) => {
-                nodes.forEach((n) => {
-                    if (n.children.length > 0) ids.add(n.id);
-                    collect(n.children);
-                });
-            };
-            collect(treeData.tree);
-            setExpanded(ids);
+            // Start fully collapsed: only categories (and everything else) are
+            // hidden until the user clicks to expand them.
+            setExpanded(new Set());
         } catch (err) {
             toast.error(getErrorMessage(err));
         } finally {
@@ -120,10 +116,10 @@ export default function Catalog() {
             };
             if (editing) {
                 await api.put(`/catalog/${editing.id}`, payload);
-                toast.success('Node updated');
+                toast.success(t('catalog.updated'));
             } else {
                 await api.post('/catalog', payload);
-                toast.success('Node created');
+                toast.success(t('catalog.created'));
             }
             setModalOpen(false);
             void load();
@@ -139,7 +135,7 @@ export default function Catalog() {
         setDeleting(true);
         try {
             await api.delete(`/catalog/${deleteTarget.id}`);
-            toast.success('Node deleted');
+            toast.success(t('catalog.deleted'));
             setDeleteTarget(null);
             void load();
         } catch (err) {
@@ -153,7 +149,7 @@ export default function Catalog() {
     const canEdit = hasPermission('edit catalog');
     const canDelete = hasPermission('delete catalog');
 
-    const typeName = (id: number) => nodeTypes.find((t) => t.id === id)?.name ?? id;
+    const typeName = (id: number) => nodeTypes.find((ty) => ty.id === id)?.name ?? id;
 
     const flatten = (nodes: TreeItem[], depth = 0): { node: TreeItem; depth: number }[] =>
         nodes.flatMap((n) => [{ node: n, depth }, ...flatten(n.children, depth + 1)]);
@@ -165,29 +161,34 @@ export default function Catalog() {
         return (
             <div key={node.id}>
                 <div
-                    className="group flex items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                    className="group flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-night-200"
                     style={{ paddingLeft: `${depth * 24 + 12}px` }}
                 >
                     {hasChildren ? (
-                        <button onClick={() => toggle(node.id)} className="text-gray-400 hover:text-gray-600">
+                        <button onClick={() => toggle(node.id)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                             {isExpanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
                         </button>
                     ) : (
                         <span className="w-4" />
                     )}
                     <FolderIcon className="h-4 w-4 shrink-0 text-brand-500" />
-                    <span className="font-medium text-gray-900">{node.name}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{node.name}</span>
                     {node.type && <Badge variant="blue">{typeName(node.catalog_node_type_id)}</Badge>}
                     <Badge variant={statusVariant(node.status)}>{node.status}</Badge>
-                    {node.is_locked && <Badge variant="yellow">locked</Badge>}
+                    {node.is_locked && <Badge variant="yellow">{t('catalog.locked')}</Badge>}
+                    {hasChildren && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                            ({node.children.length} {node.type === 'category' ? t('catalog.grades') : node.type === 'grade' ? t('catalog.books') : t('catalog.chapters')})
+                        </span>
+                    )}
                     <div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         {canCreate && (
-                            <Button variant="ghost" className="px-2 py-1" title="Add child" onClick={() => openCreate(node.id)}>
+                            <Button variant="ghost" className="px-2 py-1" title={t('catalog.addChild')} onClick={() => openCreate(node.id)}>
                                 <PlusIcon className="h-4 w-4" />
                             </Button>
                         )}
                         {hasPermission('view content') && (
-                            <Link to={`/content/${node.id}`} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600" title="Manage content">
+                            <Link to={`/content/${node.id}`} className="rounded-md p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-night-200 hover:text-gray-600 dark:hover:text-gray-300" title={t('catalog.manageContent')}>
                                 <DocumentTextIcon className="h-4 w-4" />
                             </Link>
                         )}
@@ -197,7 +198,7 @@ export default function Catalog() {
                             </Button>
                         )}
                         {canDelete && (
-                            <Button variant="ghost" className="px-2 py-1 text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(node)}>
+                            <Button variant="ghost" className="px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => setDeleteTarget(node)}>
                                 <TrashIcon className="h-4 w-4" />
                             </Button>
                         )}
@@ -211,11 +212,11 @@ export default function Catalog() {
     return (
         <div>
             <PageHeader
-                title="Catalog Structure"
-                description="Manage the academic content tree"
+                title={t('catalog.title')}
+                description={t('catalog.description')}
                 actions={canCreate && (
                     <Button onClick={() => openCreate(null)}>
-                        <PlusIcon className="h-5 w-5" /> New Root Node
+                        <PlusIcon className="h-5 w-5" /> {t('catalog.newRootNode')}
                     </Button>
                 )}
             />
@@ -223,11 +224,11 @@ export default function Catalog() {
             <Card>
                 <CardBody>
                     {loading ? (
-                        <div className="py-10 text-center text-sm text-gray-500">Loading catalog…</div>
+                        <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">{t('catalog.loading')}</div>
                     ) : tree.length === 0 ? (
-                        <EmptyState title="No catalog nodes yet" description="Create a root node to begin building your structure." />
+                        <EmptyState title={t('catalog.noNodes')} description={t('catalog.createRootHint')} />
                     ) : (
-                        <div className="divide-y divide-gray-50">{tree.map((node) => renderNode(node, 0))}</div>
+                        <div className="divide-y divide-gray-50 dark:divide-night-300">{tree.map((node) => renderNode(node, 0))}</div>
                     )}
                 </CardBody>
             </Card>
@@ -235,50 +236,50 @@ export default function Catalog() {
             <Modal
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
-                title={editing ? 'Edit Node' : 'New Node'}
+                title={editing ? t('catalog.editNode') : t('catalog.newNode')}
                 size="lg"
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-                        <Button type="submit" form="catalog-form" loading={saving}>{editing ? 'Save' : 'Create'}</Button>
+                        <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button>
+                        <Button type="submit" form="catalog-form" loading={saving}>{editing ? t('common.save') : t('common.create')}</Button>
                     </>
                 }
             >
                 <form id="catalog-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Input label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                    <Input label="Slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="Leave blank to auto-generate" />
-                    <Select label="Node type" value={form.catalog_node_type_id} onChange={(e) => setForm({ ...form, catalog_node_type_id: e.target.value })} required>
-                        <option value="">Select type…</option>
-                        {nodeTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    <Input label={t('common.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                    <Input label={t('nodeTypes.slug')} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder={t('catalog.leaveBlank')} />
+                    <Select label={t('catalog.nodeType')} value={form.catalog_node_type_id} onChange={(e) => setForm({ ...form, catalog_node_type_id: e.target.value })} required>
+                        <option value="">{t('catalog.selectType')}</option>
+                        {nodeTypes.map((ty) => <option key={ty.id} value={ty.id}>{ty.name}</option>)}
                     </Select>
-                    <Select label="Parent node" value={form.parent_id} onChange={(e) => setForm({ ...form, parent_id: e.target.value })}>
-                        <option value="">No parent (root)</option>
+                    <Select label={t('catalog.parentNode')} value={form.parent_id} onChange={(e) => setForm({ ...form, parent_id: e.target.value })}>
+                        <option value="">{t('catalog.noParentRoot')}</option>
                         {flatNodes.filter((f) => f.node.id !== editing?.id).map((f) => (
                             <option key={f.node.id} value={f.node.id}>
                                 {'\u00A0'.repeat(f.depth * 2)}{f.node.name}
                             </option>
                         ))}
                     </Select>
-                    <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="archived">Archived</option>
+                    <Select label={t('common.status')} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                        <option value="draft">{t('common.draft')}</option>
+                        <option value="published">{t('common.published')}</option>
+                        <option value="archived">{t('common.archived')}</option>
                     </Select>
-                    <Input label="Sort order" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
+                    <Input label={t('common.order')} type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
                     <div className="sm:col-span-2">
-                        <Textarea label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                        <Textarea label={t('common.description')} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                     </div>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 sm:pt-6">
-                        <input type="checkbox" checked={form.is_locked} onChange={(e) => setForm({ ...form, is_locked: e.target.checked })} className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
-                        Locked
+                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 sm:pt-6">
+                        <input type="checkbox" checked={form.is_locked} onChange={(e) => setForm({ ...form, is_locked: e.target.checked })} className="h-4 w-4 rounded border-gray-300 dark:border-night-300 text-brand-600 focus:ring-brand-500" />
+                        {t('catalog.lockedLabel')}
                     </label>
                 </form>
             </Modal>
 
             <ConfirmDialog
                 open={!!deleteTarget}
-                title="Delete node"
-                message={`Deleting "${deleteTarget?.name}" will also delete all its children and associated content. Continue?`}
+                title={t('catalog.deleteTitle')}
+                message={t('catalog.deleteMessage', { name: deleteTarget?.name ?? '' })}
                 loading={deleting}
                 onConfirm={() => void handleDelete()}
                 onClose={() => setDeleteTarget(null)}

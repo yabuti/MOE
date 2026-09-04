@@ -120,6 +120,11 @@ class CatalogController extends Controller
 
         $node->update($validated);
 
+        // Auto-sync status to all descendants whenever node status changes
+        if (isset($validated['status'])) {
+            $this->syncDescendantsStatus($node, $validated['status']);
+        }
+
         return response()->json([
             'message' => 'Catalog node updated successfully.',
             'node' => $node->load('catalogNodeType', 'parent'),
@@ -168,6 +173,15 @@ class CatalogController extends Controller
             $item['children'] = $this->buildTree($nodes, $node->id);
             return $item;
         });
+    }
+
+    private function syncDescendantsStatus(CatalogNode $node, string $status): void
+    {
+        $children = $node->children()->where('status', '!=', $status)->get();
+        foreach ($children as $child) {
+            $child->update(['status' => $status]);
+            $this->syncDescendantsStatus($child, $status);
+        }
     }
 
     private function deleteNodeWithDescendants(CatalogNode $node): void

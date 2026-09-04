@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\School;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class SchoolController extends Controller
 {
@@ -46,22 +48,53 @@ class SchoolController extends Controller
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'principal_name' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
+            'academic_year_month' => ['nullable', 'integer', 'between:1,12'],
+            'academic_year_day' => ['nullable', 'integer', 'between:1,31'],
         ]);
 
         $school = School::create($validated);
 
+        // Auto-create a school-admin account with generated credentials.
+        $schoolCode = $school->code ?: Str::slug($school->name);
+        $email = 'schooladmin@' . $schoolCode . '.local';
+        $password = Str::upper(Str::random(3)) . '-' . Str::random(3) . '-' . random_int(100, 999);
+
+        // Ensure uniqueness.
+        $originalEmail = $email;
+        $i = 1;
+        while (User::where('email', $email)->exists()) {
+            $email = $originalEmail;
+            $i++;
+        }
+
+        $adminUser = User::create([
+            'name' => $school->principal_name ?: $school->name . ' Admin',
+            'email' => $email,
+            'password' => $password,
+            'school_id' => $school->id,
+        ]);
+        $adminUser->assignRole('school');
+        $adminUser->schools()->syncWithoutDetaching([$school->id => ['role' => 'admin']]);
+
         return response()->json([
             'message' => 'School created successfully.',
             'school' => $school,
+            'credentials' => [
+                'email' => $email,
+                'password' => $password,
+            ],
         ], 201);
     }
 
     public function show(School $school): JsonResponse
     {
-        $school->load('users');
+        $school->load('users:id,name,email,school_id');
+
+        $schoolAdmin = $school->users()->where('school_id', $school->id)->first();
 
         return response()->json([
             'school' => $school,
+            'admin_email' => $schoolAdmin?->email,
         ]);
     }
 
@@ -80,6 +113,8 @@ class SchoolController extends Controller
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'principal_name' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
+            'academic_year_month' => ['nullable', 'integer', 'between:1,12'],
+            'academic_year_day' => ['nullable', 'integer', 'between:1,31'],
         ]);
 
         $school->update($validated);

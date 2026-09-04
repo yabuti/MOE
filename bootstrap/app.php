@@ -20,7 +20,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'school_access' => function (Request $request, \Closure $next) {
+                $user = $request->user();
+                if (! $user || ! $user->hasAnyPermission([
+                    'view students', 'manage students', 'register students',
+                    'evaluate students', 'edit school settings', 'view schools',
+                ])) {
+                    abort(403, 'You do not have permission to access school resources.');
+                }
+                return $next($request);
+            },
         ]);
+
+        $middleware->redirectGuestsTo(
+            static fn (Request $request) => response()->json(['message' => 'Unauthenticated.'], 401),
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

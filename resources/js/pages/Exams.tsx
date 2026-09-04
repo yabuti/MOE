@@ -1,13 +1,28 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { api, getErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Pagination, Select, Table, Textarea, statusVariant } from '../components/ui';
-import type { CatalogNode, Exam } from '../types';
+import type { Exam } from '../types';
 import { PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface ExamItem extends Exam {}
+
+interface TreeNode {
+    id: number;
+    name: string;
+    type: string | null;
+    children: TreeNode[];
+}
+
+interface TreeOption {
+    id: number;
+    name: string;
+    path: string;
+    type: string | null;
+}
 
 const emptyForm = {
     catalog_node_id: '',
@@ -21,9 +36,9 @@ const emptyForm = {
 
 export default function Exams() {
     const { hasPermission } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
     const [exams, setExams] = useState<ExamItem[]>([]);
-    const [nodes, setNodes] = useState<CatalogNode[]>([]);
     const [page, setPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
     const [total, setTotal] = useState(0);
@@ -36,6 +51,15 @@ export default function Exams() {
 
     const [deleteTarget, setDeleteTarget] = useState<ExamItem | null>(null);
     const [deleting, setDeleting] = useState(false);
+
+    const [tree, setTree] = useState<TreeNode[]>([]);
+    const [gradeId, setGradeId] = useState('');
+    const [bookId, setBookId] = useState('');
+    const [chapterId, setChapterId] = useState('');
+
+    const [importFormat, setImportFormat] = useState<'pdf' | 'csv' | ''>('');
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const fileRef = useRef<HTMLInputElement>(null);
 
     const loadExams = useCallback(async (p: number) => {
         setLoading(true);
@@ -52,19 +76,41 @@ export default function Exams() {
         }
     }, []);
 
-    const loadNodes = useCallback(async () => {
-        try {
-            const { data } = await api.get<{ nodes: CatalogNode[] }>('/catalog', { params: { per_page: 100, page: 1 } });
-            setNodes(data.nodes);
-        } catch {
-            setNodes([]);
-        }
-    }, []);
+    const allNodes = useMemo(() => {
+        const out: TreeNode[] = [];
+        const walk = (nodesToWalk: TreeNode[]) => nodesToWalk.forEach((n) => { out.push(n); walk(n.children); });
+        walk(tree);
+        return out;
+    }, [tree]);
+
+    const flatOptions = useMemo<TreeOption[]>(() => {
+        const options: TreeOption[] = [];
+
+        const flatten = (nodesArray: TreeNode[], ancestors: string[] = []) => {
+            nodesArray.forEach((n) => {
+                const currentPath = [...ancestors, n.name];
+                options.push({
+                    id: n.id,
+                    name: n.name,
+                    path: currentPath.join(' › '),
+                    type: n.type,
+                });
+                if (n.children && n.children.length > 0) {
+                    flatten(n.children, currentPath);
+                }
+            });
+        };
+
+        flatten(tree);
+        return options;
+    }, [tree]);
 
     useEffect(() => {
         void loadExams(1);
-        void loadNodes();
-    }, [loadExams, loadNodes]);
+        api.get<{ tree: TreeNode[] }>('/catalog/tree')
+            .then(({ data }) => setTree(data.tree))
+            .catch((err) => toast.error(getErrorMessage(err)));
+    }, [loadExams]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -79,13 +125,30 @@ export default function Exams() {
                 max_attempts: form.max_attempts ? Number(form.max_attempts) : null,
                 status: form.status,
             };
+            let examId: number;
             if (editing) {
                 await api.put(`/exams/${editing.id}`, payload);
-                toast.success('Exam updated');
+                toast.success(t('exams.updated'));
+                examId = editing.id;
             } else {
-                await api.post('/exams', payload);
-                toast.success('Exam created');
+                const { data } = await api.post<{ exam: { id: number } }>('/exams', payload);
+                toast.success(t('exams.created'));
+                examId = data.exam.id;
             }
+
+            if (importFormat === 'csv' && importFile) {
+                const rawText = await importFile.text();
+                const { data } = await api.post<{ message: string }>(`/exams/${examId}/bulk-import`, { raw_text: rawText });
+                toast.success(data.message);
+            } else if (importFormat === 'pdf' && importFile) {
+                const formData = new FormData();
+                formData.append('file', importFile);
+                const { data } = await api.post<{ message: string }>(`/exams/${examId}/import-pdf`, formData, {
+                    headers: { 'Content-Type': undefined },
+                });
+                toast.success(data.message);
+            }
+
             setModalOpen(false);
             void loadExams(editing ? page : 1);
         } catch (err) {
@@ -100,7 +163,7 @@ export default function Exams() {
         setDeleting(true);
         try {
             await api.delete(`/exams/${deleteTarget.id}`);
-            toast.success('Exam deleted');
+            toast.success(t('exams.deleted'));
             setDeleteTarget(null);
             void loadExams(exams.length === 1 && page > 1 ? page - 1 : page);
         } catch (err) {
@@ -114,26 +177,93 @@ export default function Exams() {
     const canEdit = hasPermission('edit exams');
     const canDelete = hasPermission('delete exams');
 
+    const findPath = (nodesToWalk: TreeNode[], targetId: number, trail: TreeNode[] = []): TreeNode[] | null => {
+        for (const n of nodesToWalk) {
+            const path = [...trail, n];
+            if (n.id === targetId) return path;
+            if (n.children && n.children.length > 0) {
+                const found = findPath(n.children, targetId, path);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    const openNew = () => {
+        setEditing(null);
+        setForm({ ...emptyForm, catalog_node_id: '' });
+        setGradeId('');
+        setBookId('');
+        setChapterId('');
+        setImportFormat('');
+        setImportFile(null);
+        setModalOpen(true);
+    };
+
+    const openEdit = (exam: ExamItem) => {
+        setEditing(exam);
+        setForm({
+            catalog_node_id: String(exam.catalog_node_id),
+            title: exam.title,
+            description: exam.description ?? '',
+            pass_percentage: exam.pass_percentage ?? 50,
+            duration_minutes: exam.duration_minutes ?? 30,
+            max_attempts: exam.max_attempts ?? 1,
+            status: exam.status,
+        });
+        const path = findPath(tree, exam.catalog_node_id) ?? [];
+        setGradeId(path.find((n) => n.type === 'grade') ? String(path.find((n) => n.type === 'grade')!.id) : '');
+        setBookId(path.find((n) => n.type === 'book') ? String(path.find((n) => n.type === 'book')!.id) : '');
+        setChapterId(path.find((n) => n.type === 'chapter') ? String(path.find((n) => n.type === 'chapter')!.id) : '');
+        setImportFormat('');
+        setImportFile(null);
+        setModalOpen(true);
+    };
+
+    const selectGrade = (value: string) => {
+        setGradeId(value);
+        setBookId('');
+        setChapterId('');
+        setForm({ ...form, catalog_node_id: '' });
+    };
+
+    const selectBook = (value: string) => {
+        setBookId(value);
+        setChapterId('');
+        setForm({ ...form, catalog_node_id: '' });
+    };
+
+    const selectChapter = (value: string) => {
+        setChapterId(value);
+        setForm({ ...form, catalog_node_id: value });
+    };
+
+    const grades = allNodes.filter((n) => n.type === 'grade');
+    const selectedGrade = grades.find((g) => g.id === Number(gradeId));
+    const books = selectedGrade?.children ?? [];
+    const selectedBook = books.find((b) => b.id === Number(bookId));
+    const chapters = selectedBook?.children ?? [];
+
     return (
         <div>
             <PageHeader
-                title="Exams"
-                description="Manage exams and assessments"
+                title={t('exams.title')}
+                description={t('exams.description')}
                 actions={canCreate && (
-                    <Button onClick={() => { setEditing(null); setForm(emptyForm); setModalOpen(true); }}>
-                        <PlusIcon className="h-5 w-5" /> New Exam
+                    <Button onClick={openNew}>
+                        <PlusIcon className="h-5 w-5" /> {t('exams.newExam')}
                     </Button>
                 )}
             />
 
             <Card>
                 {loading ? (
-                    <CardBody><div className="py-10 text-center text-sm text-gray-500">Loading exams…</div></CardBody>
+                    <CardBody><div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">{t('exams.loading')}</div></CardBody>
                 ) : exams.length === 0 ? (
-                    <CardBody><EmptyState title="No exams found" /></CardBody>
+                    <CardBody><EmptyState title={t('exams.noExams')} /></CardBody>
                 ) : (
                     <>
-                        <Table headers={['Title', 'Catalog Node', 'Status', 'Pass %', 'Duration', 'Questions', 'Actions']}>
+                        <Table headers={[t('exams.colTitle'), t('exams.colCatalogNode'), t('common.status'), t('exams.colPassPercent'), t('exams.colDuration'), t('exams.colQuestions'), t('common.actions')]}>
                             {exams.map((exam) => (
                                 <tr key={exam.id}>
                                     <td className="px-5 py-3">
@@ -141,35 +271,31 @@ export default function Exams() {
                                             {exam.title}
                                         </button>
                                     </td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">{exam.catalogNode?.name ?? exam.catalog_node_id}</td>
+                                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                        <div className="font-medium text-gray-900 dark:text-white">{exam.catalogNode?.name ?? exam.catalog_node_id}</div>
+                                        <div className="text-xs text-gray-400 dark:text-gray-500">
+                                            {flatOptions.find((o) => o.id === exam.catalog_node_id)?.path ?? t('exams.chapterNode')}
+                                        </div>
+                                    </td>
                                     <td className="px-5 py-3"><Badge variant={statusVariant(exam.status)}>{exam.status}</Badge></td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">{exam.pass_percentage ?? '—'}%</td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">{exam.duration_minutes ? `${exam.duration_minutes} min` : '—'}</td>
-                                    <td className="px-5 py-3 text-sm text-gray-600">{exam.questions_count ?? 0}</td>
+                                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{exam.pass_percentage ?? '—'}%</td>
+                                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{exam.duration_minutes ? `${exam.duration_minutes} ${t('exams.min')}` : '—'}</td>
+                                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-300">{exam.questions_count ?? 0}</td>
                                     <td className="whitespace-nowrap px-5 py-3">
                                         <div className="flex items-center gap-1">
+                                            <Button variant="ghost" className="px-2 py-1 text-brand-600 hover:bg-brand-50" onClick={() => navigate(`/exams/${exam.id}/questions`)}>
+                                                {t('exams.colQuestions')}
+                                            </Button>
                                             {canEdit && (
                                                 <Button
                                                     variant="ghost" className="px-2 py-1"
-                                                    onClick={() => {
-                                                        setEditing(exam);
-                                                        setForm({
-                                                            catalog_node_id: String(exam.catalog_node_id),
-                                                            title: exam.title,
-                                                            description: exam.description ?? '',
-                                                            pass_percentage: exam.pass_percentage ?? 50,
-                                                            duration_minutes: exam.duration_minutes ?? 30,
-                                                            max_attempts: exam.max_attempts ?? 1,
-                                                            status: exam.status,
-                                                        });
-                                                        setModalOpen(true);
-                                                    }}
+                                                    onClick={() => openEdit(exam)}
                                                 >
                                                     <PencilSquareIcon className="h-4 w-4" />
                                                 </Button>
                                             )}
                                             {canDelete && (
-                                                <Button variant="ghost" className="px-2 py-1 text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(exam)}>
+                                                <Button variant="ghost" className="px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => setDeleteTarget(exam)}>
                                                     <TrashIcon className="h-4 w-4" />
                                                 </Button>
                                             )}
@@ -186,39 +312,87 @@ export default function Exams() {
             <Modal
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
-                title={editing ? 'Edit Exam' : 'New Exam'}
+                title={editing ? t('exams.editTitle') : t('exams.newTitle')}
                 size="lg"
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-                        <Button type="submit" form="exam-form" loading={saving}>{editing ? 'Save' : 'Create'}</Button>
+                        <Button variant="secondary" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button>
+                        <Button type="submit" form="exam-form" loading={saving}>{editing ? t('common.save') : t('common.create')}</Button>
                     </>
                 }
             >
                 <form id="exam-form" onSubmit={handleSubmit} className="space-y-4">
-                    <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-                    <Select label="Catalog node" value={form.catalog_node_id} onChange={(e) => setForm({ ...form, catalog_node_id: e.target.value })} required>
-                        <option value="">Select node…</option>
-                        {nodes.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
-                    </Select>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <Input label="Pass %" type="number" min={0} max={100} value={form.pass_percentage} onChange={(e) => setForm({ ...form, pass_percentage: Number(e.target.value) })} />
-                        <Input label="Duration (min)" type="number" min={1} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
-                        <Input label="Max attempts" type="number" min={1} value={form.max_attempts} onChange={(e) => setForm({ ...form, max_attempts: Number(e.target.value) })} />
+                    <Input label={t('exams.colTitle')} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+                    <div>
+                        <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-200">{t('exams.assignToChapter')}</p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <Select label={t('exams.grade')} value={gradeId} onChange={(e) => selectGrade(e.target.value)}>
+                                <option value="">{t('exams.selectGrade')}</option>
+                                {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                            </Select>
+                            <Select label={t('exams.course')} value={bookId} onChange={(e) => selectBook(e.target.value)} disabled={!gradeId}>
+                                <option value="">{t('exams.selectCourse')}</option>
+                                {books.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </Select>
+                            <Select label={t('exams.chapter')} value={chapterId} onChange={(e) => selectChapter(e.target.value)} disabled={!bookId} required>
+                                <option value="">{t('exams.selectChapter')}</option>
+                                {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </Select>
+                        </div>
                     </div>
-                    <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="archived">Archived</option>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <Input label={t('exams.passPercent')} type="number" min={0} max={100} value={form.pass_percentage} onChange={(e) => setForm({ ...form, pass_percentage: Number(e.target.value) })} />
+                        <Input label={t('exams.durationMin')} type="number" min={1} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
+                        <Input label={t('exams.maxAttempts')} type="number" min={1} value={form.max_attempts} onChange={(e) => setForm({ ...form, max_attempts: Number(e.target.value) })} />
+                    </div>
+                    <div className="rounded-lg border border-gray-200 dark:border-night-300 bg-gray-50 dark:bg-night-200 p-3">
+                        <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">{t('exams.importQuestions')}</p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <Select
+                                label={t('exams.format')}
+                                value={importFormat}
+                                onChange={(e) => {
+                                    setImportFormat(e.target.value as 'pdf' | 'csv' | '');
+                                    setImportFile(null);
+                                    if (fileRef.current) fileRef.current.value = '';
+                                }}
+                            >
+                                <option value="">{t('exams.noImport')}</option>
+                                <option value="csv">{t('exams.textCsv')}</option>
+                                <option value="pdf">{t('exams.pdf')}</option>
+                            </Select>
+                            {importFormat !== '' && (
+                                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 dark:border-night-300 bg-white dark:bg-night-100 px-3 py-2 text-center hover:border-brand-400">
+                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                        {importFile ? importFile.name : importFormat === 'pdf' ? t('exams.choosePdf') : t('exams.chooseCsv')}
+                                    </span>
+                                    <input
+                                        ref={fileRef}
+                                        type="file"
+                                        accept={importFormat === 'pdf' ? '.pdf,application/pdf' : '.csv,.txt,text/*'}
+                                        className="hidden"
+                                        onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                                    />
+                                </label>
+                            )}
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            {t('exams.formatHint')}
+                        </p>
+                    </div>
+                    <Select label={t('common.status')} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                        <option value="draft">{t('common.draft')}</option>
+                        <option value="published">{t('common.published')}</option>
+                        <option value="archived">{t('common.archived')}</option>
                     </Select>
-                    <Textarea label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                    <Textarea label={t('common.description')} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 </form>
             </Modal>
 
             <ConfirmDialog
                 open={!!deleteTarget}
-                title="Delete exam"
-                message={`Are you sure you want to delete "${deleteTarget?.title}" and all its questions?`}
+                title={t('exams.deleteTitle')}
+                message={t('exams.deleteMessage', { name: deleteTarget?.title ?? '' })}
                 loading={deleting}
                 onConfirm={() => void handleDelete()}
                 onClose={() => setDeleteTarget(null)}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -55,6 +56,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        AuditLogger::record('login', null, null, ['email' => $user->email], ['user_id' => $user->id], $user->id);
+
         return response()->json([
             'message' => 'Logged in successfully.',
             'user' => $this->userPayload($user),
@@ -64,6 +67,8 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        AuditLogger::record('logout', $request->user());
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
@@ -79,6 +84,48 @@ class AuthController extends Controller
     }
 
     /**
+     * Update the authenticated user's profile (name).
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'user' => $this->userPayload($user),
+        ]);
+    }
+
+    /**
+     * Change the authenticated user's password (any role).
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (! $user || ! Hash::check($validated['current_password'], $user->password)) {
+            return response()->json(['message' => 'Current password is incorrect.'], 422);
+        }
+
+        $user->update(['password' => $validated['new_password']]);
+
+        AuditLogger::record('password-changed', $user);
+
+        return response()->json(['message' => 'Password changed successfully.']);
+    }
+
+    /**
      * Build a serializable user payload.
      *
      * Note: "permissions" cannot be set as a model attribute because Spatie's
@@ -88,7 +135,7 @@ class AuthController extends Controller
      */
     private function userPayload(User $user): array
     {
-        $user->load('roles');
+        $user->load('roles', 'school:id,name,code');
 
         $payload = $user->toArray();
         $payload['permissions'] = $user->getAllPermissions()->pluck('name')->values()->all();

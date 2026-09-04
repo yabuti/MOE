@@ -13,8 +13,9 @@ import type { User } from '../types';
 interface AuthContextValue {
     user: User | null;
     loading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<User>;
     logout: () => Promise<void>;
+    refreshUser: () => Promise<User | null>;
     hasRole: (...roles: string[]) => boolean;
     hasPermission: (...permissions: string[]) => boolean;
 }
@@ -45,10 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [fetchUser]);
 
-    const login = useCallback(async (email: string, password: string) => {
+    const login = useCallback(async (email: string, password: string): Promise<User> => {
         const { data } = await api.post('/login', { email, password });
         setToken(data.token);
-        setUser(data.user);
+        const loaded = data.user as User;
+        loaded.permissions = loaded.permissions ?? [];
+        setUser(loaded);
+        return loaded;
     }, []);
 
     const logout = useCallback(async () => {
@@ -59,6 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         removeToken();
         setUser(null);
+    }, []);
+
+    const refreshUser = useCallback(async (): Promise<User | null> => {
+        try {
+            const { data } = await api.get('/user');
+            const loaded = data.user as User;
+            loaded.permissions = loaded.permissions ?? [];
+            setUser(loaded);
+            return loaded;
+        } catch {
+            return null;
+        }
     }, []);
 
     const hasRole = useCallback(
@@ -78,8 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     const value = useMemo(
-        () => ({ user, loading, login, logout, hasRole, hasPermission }),
-        [user, loading, login, logout, hasRole, hasPermission],
+        () => ({ user, loading, login, logout, refreshUser, hasRole, hasPermission }),
+        [user, loading, login, logout, refreshUser, hasRole, hasPermission],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Media;
+use App\Support\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -51,6 +52,8 @@ class MediaController extends Controller
             'disk' => 'public',
             'size' => $file->getSize(),
         ]);
+
+        AuditLogger::record('uploaded', $media, null, ['name' => $media->name, 'mime_type' => $media->mime_type, 'size' => $media->size]);
 
         return response()->json([
             'message' => 'Media uploaded successfully.',

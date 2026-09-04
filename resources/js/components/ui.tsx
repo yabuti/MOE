@@ -4,14 +4,14 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
 
 const baseButton =
-    'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+    'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/20 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shadow-xs';
 
 const buttonVariants: Record<ButtonVariant, string> = {
-    primary: 'bg-brand-600 text-white hover:bg-brand-700',
-    secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
+    primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-brand-500/20',
+    secondary: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 dark:bg-night-200 dark:text-gray-200 dark:border-night-300 dark:hover:bg-night-300 dark:hover:border-night-300',
     danger: 'bg-red-600 text-white hover:bg-red-700',
-    ghost: 'text-gray-600 hover:bg-gray-100',
-    success: 'bg-green-600 text-white hover:bg-green-700',
+    ghost: 'text-gray-600 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-night-200',
+    success: 'bg-emerald-600 text-white hover:bg-emerald-700',
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -29,7 +29,7 @@ export function Button({ variant = 'primary', loading, className = '', children,
 }
 
 const inputBase =
-    'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 disabled:bg-gray-50';
+    'w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:bg-white focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed shadow-xs dark:border-night-300 dark:bg-night-200 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:bg-night-200 dark:disabled:bg-night-100';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -41,7 +41,7 @@ export function Input({ label, error, className = '', id, ...props }: InputProps
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-gray-700">
+                <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {label}
                 </label>
             )}
@@ -61,7 +61,7 @@ export function Textarea({ label, error, className = '', id, ...props }: Textare
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={textareaId} className="mb-1 block text-sm font-medium text-gray-700">
+                <label htmlFor={textareaId} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {label}
                 </label>
             )}
@@ -82,7 +82,7 @@ export function Select({ label, error, className = '', id, children, ...props }:
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={selectId} className="mb-1 block text-sm font-medium text-gray-700">
+                <label htmlFor={selectId} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {label}
                 </label>
             )}
@@ -95,15 +95,15 @@ export function Select({ label, error, className = '', id, children, ...props }:
 }
 
 export function Card({ className = '', children }: { className?: string; children: ReactNode }) {
-    return <div className={`rounded-xl border border-gray-200 bg-white shadow-sm ${className}`}>{children}</div>;
+    return <div className={`rounded-xl border border-gray-200 bg-white shadow-sm dark:border-night-300 dark:bg-night-100 ${className}`}>{children}</div>;
 }
 
 export function CardHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
     return (
-        <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-night-300">
             <div>
-                <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-                {subtitle && <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>}
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
+                {subtitle && <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>}
             </div>
             {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
         </div>
@@ -117,12 +117,12 @@ export function CardBody({ className = '', children }: { className?: string; chi
 type BadgeVariant = 'gray' | 'green' | 'red' | 'yellow' | 'blue' | 'purple';
 
 const badgeVariants: Record<BadgeVariant, string> = {
-    gray: 'bg-gray-100 text-gray-700',
-    green: 'bg-green-100 text-green-700',
-    red: 'bg-red-100 text-red-700',
-    yellow: 'bg-yellow-100 text-yellow-800',
-    blue: 'bg-blue-100 text-blue-700',
-    purple: 'bg-purple-100 text-purple-700',
+    gray: 'bg-gray-100 text-gray-700 dark:bg-night-300 dark:text-gray-300',
+    green: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300',
+    red: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
+    yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-300',
+    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
+    purple: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300',
 };
 
 export function Badge({ variant = 'gray', children, className = '' }: { variant?: BadgeVariant; children: ReactNode; className?: string }) {
@@ -170,9 +170,9 @@ export function PageLoader() {
 
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
     return (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
-            <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-            {description && <p className="mt-1 max-w-sm text-sm text-gray-500">{description}</p>}
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center dark:border-night-300 dark:bg-night-200/40">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+            {description && <p className="mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">{description}</p>}
             {action && <div className="mt-4">{action}</div>}
         </div>
     );
@@ -185,11 +185,12 @@ interface ModalProps {
     children: ReactNode;
     footer?: ReactNode;
     size?: 'sm' | 'md' | 'lg' | 'xl';
+    panelClassName?: string;
 }
 
 const modalSizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
-export function Modal({ open, onClose, title, children, footer, size = 'md' }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, size = 'md', panelClassName = '' }: ModalProps) {
     useEffect(() => {
         if (!open) return;
         const handler = (e: KeyboardEvent) => {
@@ -204,15 +205,15 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }: M
     return (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6">
             <div className="fixed inset-0 bg-gray-900/50" onClick={onClose} />
-            <div className={`relative z-10 my-8 w-full ${modalSizes[size]} rounded-xl bg-white shadow-xl`}>
-                <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-                    <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+            <div className={`relative z-10 my-8 w-full ${modalSizes[size]} rounded-xl bg-white shadow-xl dark:bg-night-100 dark:border dark:border-night-300 ${panelClassName}`}>
+                <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4 dark:border-night-300">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+                    <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-night-200">
                         <XMarkIcon className="h-5 w-5" />
                     </button>
                 </div>
                 <div className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
-                {footer && <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-5 py-4">{footer}</div>}
+                {footer && <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-5 py-4 dark:border-night-300">{footer}</div>}
             </div>
         </div>
     );
@@ -246,7 +247,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', l
                 </>
             }
         >
-            <p className="text-sm text-gray-600">{message}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">{message}</p>
         </Modal>
     );
 }
@@ -261,8 +262,8 @@ interface PaginationProps {
 export function Pagination({ page, lastPage, total, onPage }: PaginationProps) {
     if (lastPage <= 1) return null;
     return (
-        <div className="flex items-center justify-between border-t border-gray-200 px-5 py-3">
-            <p className="text-sm text-gray-500">
+        <div className="flex items-center justify-between border-t border-gray-200 px-5 py-3 dark:border-night-300">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
                 Page {page} of {lastPage} · {total} total
             </p>
             <div className="flex items-center gap-1">
@@ -280,17 +281,17 @@ export function Pagination({ page, lastPage, total, onPage }: PaginationProps) {
 export function Table({ headers, children }: { headers: string[]; children: ReactNode }) {
     return (
         <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-night-300">
+                <thead className="bg-gray-50 dark:bg-night-200">
                     <tr>
                         {headers.map((h, i) => (
-                            <th key={i} scope="col" className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <th key={i} scope="col" className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 {h}
                             </th>
                         ))}
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">{children}</tbody>
+                <tbody className="divide-y divide-gray-200 bg-white dark:divide-night-300 dark:bg-night-100">{children}</tbody>
             </table>
         </div>
     );
@@ -300,8 +301,8 @@ export function PageHeader({ title, description, actions }: { title: ReactNode; 
     return (
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-                {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
+                {description && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>}
             </div>
             {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
         </div>

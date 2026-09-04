@@ -1,0 +1,21 @@
+const dashboard: Record<string, string> = {
+    'dashboard.users': "Fayyadamtotaamtoota",
+    'dashboard.schools': 'Manneen Barnootaa',
+    'dashboard.books': 'Kitaabota',
+    'dashboard.students': 'Barattoota',
+    'dashboard.title': 'Gabatee',
+    'dashboard.failedToLoad': 'Gabatee mullisuu hin dandeenye',
+    'dashboard.greetingMorning': 'Akkam bultan',
+    'dashboard.greetingAfternoon': 'Akkam ooltan',
+    'dashboard.greetingEvening': 'Akkam ooltan',
+    'dashboard.welcomeBack': 'Baga nagaan deebitan, {name} \ud83d\udc4b',
+    'dashboard.signedInAs': "Ati {role} taatee galmoofteerta. Kuni uumamaa barnootaa keessan keessatti argame yoo ta\u2019u dhuunfaa ta\u2019a.",
+    'dashboard.recentActivity': 'Gocha dhiyeenyaa',
+    'dashboard.events': 'Taateewwan {count}',
+    'dashboard.noRecentActivity': 'Gochi dhiheenyaa hin jiru',
+    'dashboard.system': 'Sirna',
+    'dashboard.newestUsers': "Fayyadamtoota Haaraa",
+    'dashboard.joined': 'kan jiran {count}',
+    'dashboard.noUsersYet': "Fayyadamtoonni hin jirani",
+};
+export default dashboard;

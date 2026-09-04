@@ -5,6 +5,8 @@ export interface User {
     email_verified_at?: string;
     created_at?: string;
     updated_at?: string;
+    school_id?: number | null;
+    school?: { id: number; name: string; code?: string } | null;
     roles?: Role[];
     permissions?: string[];
 }
@@ -120,6 +122,33 @@ export interface School {
     email?: string;
     principal_name?: string;
     is_active?: boolean;
+    academic_year_month?: number | null;
+    academic_year_day?: number | null;
+}
+
+export interface Enrollment {
+    id: number;
+    user_id: number;
+    school_id: number;
+    catalog_node_id: number;
+    academic_year: string;
+    status: 'active' | 'passed' | 'failed';
+    started_at?: string | null;
+    ended_at?: string | null;
+    user?: { id: number; name: string; email: string };
+    school?: { id: number; name: string };
+    grade?: { id: number; name: string };
+}
+
+export interface RegisterStudentResult {
+    student: { id: number; name: string; email: string; grade?: string; academic_year?: string };
+    user: { id: number; name: string; email: string; grade?: string; academic_year?: string };
+    credentials: { username: string; password: string };
+    username: string;
+    password: string;
+    school: { id: number; name: string };
+    grade: { id: number; name: string };
+    academic_year: string;
 }
 
 export interface DashboardStats {
@@ -153,4 +182,61 @@ export interface Paginated<T> {
     last_page: number;
     per_page: number;
     total: number;
+}
+
+export interface ChapterExamProgress {
+    id: number;
+    title: string;
+    percentage: number;
+    passed: boolean;
+    attempted: boolean;
+}
+
+export interface ChapterProgress {
+    id: number;
+    name: string;
+    read_percent: number;
+    listen_percent: number;
+    activity_percent: number;
+    exam: ChapterExamProgress | null;
+}
+
+export interface BookProgress {
+    id: number;
+    name: string;
+    category?: string | null;
+    grade?: string | null;
+    read_percent: number;
+    listen_percent: number;
+    exam_percent: number | null;
+    chapters: ChapterProgress[];
+}
+
+export interface MostReadChapter {
+    chapter_name: string;
+    book_name: string;
+    percent: number;
+}
+
+export interface ProgressReport {
+    overall_read: number;
+    overall_understand: number;
+    most_read_chapter: MostReadChapter | null;
+    books: BookProgress[];
+}
+
+export interface ChildSummary {
+    overall_read: number;
+    overall_understand: number;
+    most_read_chapter: MostReadChapter | null;
+    books_count: number;
+}
+
+export interface Child {
+    id: number;
+    name: string;
+    email: string;
+    parent_name?: string | null;
+    linked_at?: string | null;
+    summary: ChildSummary;
 }

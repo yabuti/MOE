@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+
 use App\Models\Role;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
@@ -13,6 +15,10 @@ class RoleController extends Controller
     public function index(): JsonResponse
     {
         $roles = Role::with('permissions')->get();
+
+        foreach ($roles as $role) {
+            $role->setAttribute('permissions_count', $role->permissions->count());
+        }
 
         return response()->json([
             'roles' => $roles,
@@ -36,6 +42,8 @@ class RoleController extends Controller
 
         $role->syncPermissions($validated['permissions'] ?? []);
 
+        AuditLogger::record('permission-changed', $role, null, ['permissions' => $role->permissions()->pluck('name')->all()]);
+
         return response()->json([
             'message' => 'Role created successfully.',
             'role' => $role->load('permissions'),
@@ -55,6 +63,7 @@ class RoleController extends Controller
 
         if ($request->has('permissions')) {
             $role->syncPermissions($validated['permissions'] ?? []);
+            AuditLogger::record('permission-changed', $role, null, ['previous' => $role->getOriginal('name'), 'permissions' => $role->permissions()->pluck('name')->all()]);
         }
 
         return response()->json([

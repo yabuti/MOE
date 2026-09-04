@@ -1,0 +1,23 @@
+const nav: Record<string, string> = {
+    'nav.dashboard': 'Gabatee',
+    'nav.myProgress': 'Hirmaannaa koo',
+    'nav.parentDashboard': 'Gabatee Maatii ',
+    'nav.schoolDashboard': 'Gabatee Mana barnootaa',
+    'nav.students': 'Barattoota',
+    'nav.schools': 'Mana Barumsaa',
+    'nav.nodeTypes': 'Akaakuu Nodii',
+    'nav.catalog': 'Kaataaloogii',
+    'nav.importBooks': 'Kitaaba seensisuu',
+    'nav.content': 'Qabiyyee',
+    'nav.exams': 'Qormaata',
+    'nav.library': 'Mana Kitaabaa',
+    'nav.users': "Fayyadamtoota",
+    'nav.roles': 'Gochaalee',
+    'nav.auditLogs': 'To\'annoo gochootaa',
+    'nav.myProfile': 'Pirofaayila koo',
+    'nav.changePassword': 'Galchii iccitii jijjiiri',
+    'nav.signOut': 'Bahi',
+    'nav.lightMode': 'Haala Ifaa',
+    'nav.darkMode': 'Haala Dukkanaa',
+};
+export default nav;

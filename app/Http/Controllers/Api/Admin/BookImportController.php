@@ -14,21 +14,20 @@ use Smalot\PdfParser\Parser;
 class BookImportController extends Controller
 {
     /**
-     * Parse the uploaded PDF and return the detected chapter/section tree
+     * Parse the uploaded PDF and return the detected chapter tree
      * without writing anything to the database.
      */
     public function preview(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
-            'book_id' => ['nullable', 'integer', 'exists:catalog_nodes,id'],
         ]);
 
         $text = $this->extractText($request->file('file'));
 
         if ($text === null || trim($text) === '') {
             return response()->json([
-                'message' => 'Could not extract any text from the PDF.',
+                'message' => 'Could not extract any text from the PDF. Scanned (image-only) books are not supported — please use a digital PDF with selectable text.',
             ], 422);
         }
 
@@ -39,22 +38,24 @@ class BookImportController extends Controller
     }
 
     /**
-     * Upload a book PDF, parse it, build the Book -> Chapter -> Section
-     * node tree and persist it under the chosen parent book node.
+     * Upload a book PDF, parse it, build the Book -> Chapter node tree and
+     * persist the chapters under the chosen parent book node. Content is
+     * attached directly to each chapter.
      */
     public function import(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
-            'book_id' => ['required', 'integer', 'exists:catalog_nodes,id'],
-            'book_title' => ['nullable', 'string', 'max:255'],
+            'category_id' => ['required', 'integer', 'exists:catalog_nodes,id'],
+            'grade_id' => ['required', 'integer', 'exists:catalog_nodes,id'],
+            'book_title' => ['required', 'string', 'max:255'],
         ]);
 
         $text = $this->extractText($request->file('file'));
 
         if ($text === null || trim($text) === '') {
             return response()->json([
-                'message' => 'Could not extract any text from the PDF.',
+                'message' => 'Could not extract any text from the PDF. Scanned (image-only) books are not supported — please use a digital PDF with selectable text.',
             ], 422);
         }
 
@@ -62,22 +63,34 @@ class BookImportController extends Controller
 
         if (count($tree) === 0) {
             return response()->json([
-                'message' => 'No chapter or section headings could be detected in this PDF.',
+                'message' => 'No chapter headings could be detected in this PDF.',
             ], 422);
         }
 
-        $parent = CatalogNode::findOrFail($validated['book_id']);
-
+        $grade = CatalogNode::findOrFail($validated['grade_id']);
+        $bookType = CatalogNodeType::where('slug', 'book')->firstOrFail();
         $chapterType = CatalogNodeType::where('slug', 'chapter')->firstOrFail();
-        $sectionType = CatalogNodeType::where('slug', 'section')->firstOrFail();
 
-        $created = DB::transaction(function () use ($tree, $parent, $chapterType, $sectionType, $request, $validated) {
-            $order = $parent->children()->max('sort_order') ?? 0;
+        $created = DB::transaction(function () use ($tree, $grade, $bookType, $chapterType, $request, $validated) {
+            $book = $grade->children()->create([
+                'catalog_node_type_id' => $bookType->id,
+                'name' => $validated['book_title'],
+                'slug' => $this->uniqueSlug(Str::slug($validated['book_title'])),
+                'meta' => [
+                    'source' => 'pdf_import',
+                    'imported_by' => $request->user()->id,
+                    'imported_at' => now()->toISOString(),
+                ],
+                'sort_order' => ($grade->children()->max('sort_order') ?? 0) + 1,
+                'status' => 'draft',
+            ]);
+
+            $order = 0;
             $chapters = [];
 
             foreach ($tree as $chapter) {
                 $order++;
-                $chapterNode = $parent->children()->create([
+                $chapterNode = $book->children()->create([
                     'catalog_node_type_id' => $chapterType->id,
                     'name' => $chapter['title'],
                     'slug' => $this->uniqueSlug(Str::slug($chapter['title'])),
@@ -92,32 +105,27 @@ class BookImportController extends Controller
                     'status' => 'draft',
                 ]);
 
-                $sectionOrder = 0;
-                foreach ($chapter['sections'] as $section) {
-                    $sectionOrder++;
-                    $chapterNode->children()->create([
-                        'catalog_node_type_id' => $sectionType->id,
-                        'name' => $section,
-                        'slug' => $this->uniqueSlug(Str::slug($section)),
-                        'meta' => [
-                            'source' => 'pdf_import',
-                            'imported_by' => $request->user()->id,
-                            'imported_at' => now()->toISOString(),
-                        ],
-                        'sort_order' => $sectionOrder,
-                        'status' => 'draft',
+                // Create content block for chapter text/concepts
+                if (! empty(trim($chapter['body'] ?? ''))) {
+                    $chapterNode->contentBlocks()->create([
+                        'type' => 'text',
+                        'title' => $chapter['title'],
+                        'content' => trim($chapter['body']),
+                        'position' => 0,
+                        'is_active' => true,
                     ]);
                 }
 
-                $chapters[] = $chapterNode->load('catalogNodeType');
+                $chapters[] = $chapterNode->load('catalogNodeType', 'contentBlocks');
             }
 
-            return $chapters;
+            return ['book' => $book, 'chapters' => $chapters];
         });
 
         return response()->json([
-            'message' => 'Book imported successfully. ' . count($created) . ' chapter(s) created.',
-            'chapters' => $created,
+            'message' => 'Book "' . $created['book']->name . '" imported with ' . count($created['chapters']) . ' chapter(s).',
+            'book' => $created['book'],
+            'chapters' => $created['chapters'],
         ], 201);
     }
 
@@ -127,8 +135,26 @@ class BookImportController extends Controller
     private function extractText($file): ?string
     {
         try {
+            // Guard against pathological PDFs wedging the single-threaded dev
+            // server: cap the parse time and emit a clean 422 if a fatal timeout
+            // kills this request mid-parse.
+            set_time_limit(45);
+
+            register_shutdown_function(function () {
+                $error = error_get_last();
+
+                if (is_array($error) && str_contains((string) $error['message'], 'Maximum execution time')) {
+                    http_response_code(422);
+                    header('Content-Type: application/json', true);
+                    echo json_encode([
+                        'message' => 'This PDF took too long to analyze and was cancelled. Scanned (image-only) or very large PDFs are not supported — please use a smaller digital book PDF.',
+                    ]);
+                }
+            });
+
             $parser = new Parser();
             $pdf = $parser->parseFile($file->getRealPath());
+
             return $pdf->getText();
         } catch (\Throwable $e) {
             return null;
@@ -136,79 +162,206 @@ class BookImportController extends Controller
     }
 
     /**
-     * Detect a Book -> Chapter -> Section structure from the raw PDF text.
+     * Detect the chapters of a book from the raw PDF text.
      *
      * Supports both Amharic and English heading keywords:
      *  - Chapter level : ምዕራፍ / Chapter / Unit
-     *  - Section level : ክፍል / Section / Lesson / ትምህርት
+     *  - Section level : ክፍል / Section / Lesson / ትምህርት (grouped into a chapter
+     *    as a fallback so no content is lost, but chapters are the deepest node)
      */
     private function detectTree(string $text): array
     {
         $chapters = [];
-        $chapterIndex = -1;
-        $pendingSections = [];
-
         $chapterPattern = '/^(?:ምዕራፍ|chapter|unit)\b/iu';
-        $sectionPattern = '/^(?:ክፍል|section|lesson|ትምህርት)\b/iu';
 
         $lines = preg_split('/\R/u', $text);
 
-        foreach ($lines as $line) {
-            $line = trim($line);
-
-            if ($line === '') {
-                continue;
+        // Locate the Table of Contents region so its entries are NOT treated as chapters.
+        $tocStart = null;
+        foreach ($lines as $i => $line) {
+            if (preg_match('/^(?:table\s+of\s+contents|contents|ዝርዝር|ማውጫ|ይዘት)/iu', trim($line))) {
+                $tocStart = $i;
+                break;
             }
+        }
 
-            $normalized = $this->normalizeHeadingLine($line);
-
-            if ($normalized === '') {
-                continue;
-            }
-
-            if (preg_match($chapterPattern, $normalized)) {
-                // Flush pending sections into the new chapter's scope.
-                $pendingSections = [];
-                $chapters[] = [
-                    'heading' => $line,
-                    'title' => $this->buildTitle($line, 'Chapter', 'ምዕራፍ'),
-                    'sections' => [],
-                ];
-                $chapterIndex = count($chapters) - 1;
-                continue;
-            }
-
-            if (preg_match($sectionPattern, $normalized)) {
-                $title = $this->buildTitle($line, 'Section', 'ክፍል');
-
-                if ($chapterIndex >= 0) {
-                    $chapters[$chapterIndex]['sections'][] = $title;
-                } else {
-                    // Sections that appear before any chapter heading.
-                    $pendingSections[] = $title;
+        $tocEnd = null;
+        if ($tocStart !== null) {
+            for ($i = $tocStart + 1; $i < count($lines); $i++) {
+                $trimmed = trim($lines[$i]);
+                if ($trimmed === '') {
+                    continue;
                 }
-                continue;
+                $normalized = $this->normalizeHeadingLine($trimmed);
+                if ($normalized !== '' && preg_match($chapterPattern, $normalized) && ! $this->looksLikeTocEntry($trimmed)) {
+                    // The first real chapter heading ends the Table of Contents.
+                    $tocEnd = $i;
+                    break;
+                }
+            }
+            if ($tocEnd === null) {
+                // Everything after the ToC header looks like a ToC entry (rare): ignore the whole tail.
+                $tocEnd = count($lines);
             }
         }
 
-        // If we only found section-level headings (no chapter markers),
-        // group them under a single default chapter.
-        if (count($chapters) === 0 && count($pendingSections) > 0) {
-            $chapters[] = [
-                'heading' => 'Auto',
-                'title' => 'ያልተመደበ ምዕራፍ',
-                'sections' => $pendingSections,
-            ];
-            return $chapters;
+        $currentChapterIndex = -1;
+
+        foreach ($lines as $i => $line) {
+            $trimmedLine = trim($line);
+
+            if ($trimmedLine === '') {
+                continue;
+            }
+
+            // Skip the whole Table of Contents region.
+            if ($tocStart !== null && $i >= $tocStart && $i < $tocEnd) {
+                continue;
+            }
+
+            $normalized = $this->normalizeHeadingLine($trimmedLine);
+
+            if ($normalized !== '' && preg_match($chapterPattern, $normalized)) {
+                // Dot-leader / trailing-page-number lines are Table of Contents
+                // entries, not real headings (and not body text either).
+                if ($this->looksLikeTocEntry($trimmedLine)) {
+                    continue;
+                }
+                $chapters[] = [
+                    'heading' => $trimmedLine,
+                    'title' => $this->buildTitle($trimmedLine, 'Chapter', 'ምዕራፍ'),
+                    'content_lines' => [],
+                ];
+                $currentChapterIndex = count($chapters) - 1;
+                continue;
+            }
+
+            if ($currentChapterIndex >= 0) {
+                $chapters[$currentChapterIndex]['content_lines'][] = $line;
+            } else {
+                // If text appears before the first formal chapter heading (e.g. Intro/Preface)
+                if (count($chapters) === 0) {
+                    $chapters[] = [
+                        'heading' => 'Introduction',
+                        'title' => 'መግቢያ (Introduction)',
+                        'content_lines' => [$line],
+                    ];
+                    $currentChapterIndex = 0;
+                } else {
+                    $chapters[0]['content_lines'][] = $line;
+                }
+            }
         }
 
-        // If we found chapter-level but a leading run of sections appeared
-        // before the first chapter, attach them to the first chapter.
-        if (count($pendingSections) > 0 && count($chapters) > 0) {
-            $chapters[0]['sections'] = array_merge($pendingSections, $chapters[0]['sections']);
+        // Format body text into clean, flowing paragraphs for each chapter
+        foreach ($chapters as &$ch) {
+            $ch['body'] = $this->cleanAndFormatPdfText($ch['content_lines']);
+            $ch['body_snippet'] = Str::limit(preg_replace('/\s+/', ' ', $ch['body']), 200);
+            unset($ch['content_lines']);
         }
 
         return $chapters;
+    }
+
+    /**
+     * Reconstruct raw PDF line breaks into clean, flowing paragraphs.
+     * Merges broken mid-sentence lines, converts chemical subscripts,
+     * strips PDF layout noise, and inserts double newline paragraph breaks (\n\n).
+     */
+    private function cleanAndFormatPdfText(array $contentLines): string
+    {
+        $paragraphs = [];
+        $currentParagraph = '';
+
+        foreach ($contentLines as $line) {
+            $line = trim($line);
+
+            if ($line === '') {
+                if ($currentParagraph !== '') {
+                    $paragraphs[] = $this->formatChemicalFormulas($currentParagraph);
+                    $currentParagraph = '';
+                }
+                continue;
+            }
+
+            // Omit standalone page numbers or header/footer artifacts
+            if (preg_match('/^(?:page\s+\d+|p\.\s*\d+|\d+\s*\/\s*\d+|\d+)$/i', $line)) {
+                continue;
+            }
+
+            // Omit PDF coordinate alignment rows (e.g. "2 2 3 3 6 6 1 1" or standalone "LCM")
+            if (preg_match('/^(?:\d+\s+){3,}\d+$|^\s*LCM\s*$/i', $line)) {
+                continue;
+            }
+
+            if ($currentParagraph === '') {
+                $currentParagraph = $line;
+            } else {
+                $lastChar = mb_substr($currentParagraph, -1);
+                // If previous line ended with sentence end marker (. ! ? : :: |), create a paragraph gap
+                if (in_array($lastChar, ['.', '!', '?', ':', '።', '፡'], true)) {
+                    $paragraphs[] = $this->formatChemicalFormulas($currentParagraph);
+                    $currentParagraph = $line;
+                } else {
+                    // Mid-sentence wrap in PDF: join with a single space
+                    $currentParagraph .= ' ' . $line;
+                }
+            }
+        }
+
+        if ($currentParagraph !== '') {
+            $paragraphs[] = $this->formatChemicalFormulas($currentParagraph);
+        }
+
+        return implode("\n\n", $paragraphs);
+    }
+
+    /**
+     * Convert numbers following chemical formula characters into Unicode subscripts
+     * and clean up reaction arrows.
+     * E.g. "Na 2 SO 4 + Al(NO 3 ) 3 -> Al 2 (SO 4 ) 3 + 6 NaNO 3"
+     * becomes "Na₂SO₄ + 2Al(NO₃)₃ → Al₂(SO₄)₃ + 6NaNO₃"
+     */
+    private function formatChemicalFormulas(string $text): string
+    {
+        $subscripts = ['0'=>'₀','1'=>'₁','2'=>'₂','3'=>'₃','4'=>'₄','5'=>'₅','6'=>'₆','7'=>'₇','8'=>'₈','9'=>'₉'];
+
+        // Replace numbers after chemical symbols/parens with subscript unicode digits
+        $text = preg_replace_callback('/([A-Z][a-z]?|\))\s*(\d+)/', function ($m) use ($subscripts) {
+            $symbol = $m[1];
+            $digits = strtr($m[2], $subscripts);
+            return $symbol . $digits;
+        }, $text);
+
+        // Clean up spaced chemical formulas (e.g. "Na₂ SO₄" -> "Na₂SO₄")
+        $text = preg_replace('/(₂|₃|₄|₅|₆|₇|₈|₉|₀)\s+([A-Z])/', '$1$2', $text);
+        $text = preg_replace('/([A-Z][a-z]?)\s+(₂|₃|₄|₅|₆|₇|₈|₉|₀)/', '$1$2', $text);
+
+        // Standardize reaction arrows
+        $text = preg_replace('/\s*(-+>|=>|=)\s*/', ' → ', $text);
+
+        return $text;
+    }
+
+    /**
+     * Detect lines that are Table of Contents entries rather than real headings:
+     * dot-leader padding, ellipses, or a trailing page number.
+     */
+    private function looksLikeTocEntry(string $line): bool
+    {
+        if (preg_match('/\.{2,}\s*$/u', $line)) {
+            return true;
+        }
+        if (preg_match('/[.…]\s*\d{1,4}\s*$/u', $line)) {
+            return true;
+        }
+        if (preg_match('/\s+\d{1,4}\s*$/u', $line)) {
+            return true;
+        }
+        if (preg_match('/(?:^|\s)[ivxlcdm]{1,5}\s*$/u', $line)) {
+            return true;
+        }
+        return false;
     }
 
     /**

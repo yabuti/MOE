@@ -45,18 +45,27 @@ api.interceptors.response.use(
 
 export function getErrorMessage(error: unknown): string {
     if (axios.isAxiosError(error)) {
-        const data = error.response?.data as
-            | { message?: string }
-            | { errors?: Record<string, string[]> }
-            | undefined;
-        if (data && 'errors' in data && data.errors) {
-            const firstKey = Object.keys(data.errors)[0];
-            if (firstKey) {
-                return data.errors[firstKey][0];
+        const data = error.response?.data;
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+            const obj = data as { message?: string; errors?: Record<string, string[]> };
+            if (obj.errors && typeof obj.errors === 'object') {
+                const firstKey = Object.keys(obj.errors)[0];
+                if (firstKey) {
+                    const first = obj.errors[firstKey];
+                    if (Array.isArray(first) && first.length > 0) {
+                        return first[0];
+                    }
+                }
+            }
+            if (typeof obj.message === 'string' && obj.message) {
+                return obj.message;
             }
         }
-        if (data && 'message' in data && data.message) {
-            return data.message;
+        if (error.response?.status === 413) {
+            return 'The file exceeds the upload size limit.';
+        }
+        if (error.code === 'ECONNABORTED') {
+            return 'The request timed out.';
         }
         return error.message;
     }

@@ -19,6 +19,7 @@ class DashboardController extends Controller
     {
         $counts = [
             'users' => User::count(),
+            'students' => User::role('student')->count(),
             'schools' => School::count(),
             'nodes' => CatalogNode::count(),
             'published_nodes' => CatalogNode::where('status', 'published')->count(),
@@ -29,7 +30,7 @@ class DashboardController extends Controller
 
         $recentAuditLogs = AuditLog::with('user:id,name')
             ->latest()
-            ->take(10)
+            ->take(4)
             ->get();
 
         $recentUsers = User::latest()
