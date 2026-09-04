@@ -18,6 +18,7 @@ import {
     InboxIcon,
     KeyIcon,
     ShieldCheckIcon,
+    SunIcon,
     UserCircleIcon,
     UserGroupIcon,
     UsersIcon,

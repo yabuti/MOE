@@ -2,7 +2,7 @@ const nodeTypes: Record<string, string> = {
     'nodeTypes.title': 'Akaakuu Nodii',
     'nodeTypes.description': "Akaakuu barnootaa nodii dhangala\u2019i",
     'nodeTypes.newNodeType': 'Akaakuu Nodii Haaraa',
-    'nodeTypes.loading': 'Akaakuu nodii fe\u2019amaa jira\u2026',
+    'nodeTypes.loading': "Akaakuu nodii fe\u2019amaa jira\u2026",
     'nodeTypes.noNodeTypes': 'Akaakuu nodii hin argamne',
     'nodeTypes.colName': 'Maqaa',
     'nodeTypes.colSlug': 'Slug',

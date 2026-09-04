@@ -1,10 +1,10 @@
 const library: Record<string, string> = {
     'library.title': 'ቤተ መዛግብት',
-    'library.descriptionEmpty': 'የታተሙ የትምህርት መጽሐፎችን ይernen',
+    'library.descriptionEmpty': 'የታተሙ የትምህርት መጽሐፎችን ይመልከቱ',
     'library.loading': 'ቤተ መዛግብት በመጫን ላይ…',
     'library.noBooks': 'መጽሐፎች የሉም',
     'library.noBooksHint': 'የታተሙ መጽሐፎች እዚህ ይታያሉ።',
-    'library.descriptionData': 'የታተሙ የትምህርት መጽሐፎችን ይernen እና ይነበቡ',
+    'library.descriptionData': 'የታተሙ የትምህርት መጽሐፎችን ይመልከቱ እና ያንብቡ',
     'library.chapter': 'ምዕራፍ',
     'library.chapters': 'ምዕራፎች',
     'library.readProgress': '% ተነበበ',

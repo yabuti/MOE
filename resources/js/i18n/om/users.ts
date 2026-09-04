@@ -5,7 +5,7 @@ const users: Record<string, string> = {
     'users.loading': "Istii\u2019amtoota fe\u2019amaa jira\u2026",
     'users.noUsers': "Istii\u2019amtoota hin argamne",
     'users.colName': 'Maqaa',
-    'users.colEmail': 'Email',
+    'users.colEmail': 'Imayilii',
     'users.colRoles': 'Gochaalee',
     'users.colPermissions': 'Hayyamamtoota',
     'users.colActions': 'Gochoota',

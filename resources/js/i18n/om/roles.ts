@@ -18,8 +18,8 @@ const roles: Record<string, string> = {
     'roles.permissionsLabel': 'Hayyamamtoota',
     'roles.noPermissionsAvailable': 'Hayyamamtoota cafisuuf hin jiru.',
     'roles.deleteTitle': 'Gochaa mara',
-    'roles.deleteMessage': 'Ati gochaa "{name}" maruuf jirta? Istii\u2019amtoota gochaan kana qabatan hayyamamtoota jidduu banks.\u2019i.',
-    'roles.groupDashboard': 'Dashboardi',
+    'roles.deleteMessage': 'Ati gochaa "{name}" maruuf jirta? Istii\u2019amtoota gochaan kana qabatan hayyamamtoota jidduu bankees\u2019i.',
+    'roles.groupDashboard': 'Marsarii',
     'roles.groupUsers': "Istii\u2019amtoota",
     'roles.groupRolesPermissions': 'Gochaalee & Hayyamamtoota',
     'roles.groupSchools': 'Mana Barumsaa',
@@ -28,6 +28,6 @@ const roles: Record<string, string> = {
     'roles.groupContent': 'Qabiyyee',
     'roles.groupExams': 'Keegajjesaa',
     'roles.groupStudentTracking': 'Hordofii Barattoota',
-    'roles.groupSystem': 'System',
+    'roles.groupSystem': 'Iddaa',
 };
 export default roles;

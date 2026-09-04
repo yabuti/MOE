@@ -9,7 +9,7 @@ const dashboard: Record<string, string> = {
     'dashboard.greetingAfternoon': 'እንኳን ደህና ነጋህ',
     'dashboard.greetingEvening': 'እንኳን ደህና ማታ ይሁን',
     'dashboard.welcomeBack': 'እንኳን ተመለሱ, {name} 👋',
-    'dashboard.signedInAs': '{role} አAuth ነዎት። የትምህርት መርሆዎ ዋና እንቅስቃሴዎች እዚህ አሉ።',
+    'dashboard.signedInAs': '{role} ሆነው ገብተዋል። የትምህርት ዋና እንቅስቃሴዎች እዚህ አሉ።',
     'dashboard.recentActivity': 'የቅርብ ጊዜ እንቅስቃሴ',
     'dashboard.events': '{count} እንቅስቃሴዎች',
     'dashboard.noRecentActivity': 'የቅርብ ጊዜ እንቅስቃሴ የለም',
