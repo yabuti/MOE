@@ -1,13 +1,13 @@
 const auditLogs: Record<string, string> = {
-    'auditLogs.title': 'የAuditing መዝገቦች',
-    'auditLogs.description': 'በመድረክ ውስጥ ለው开支ችን ይከታተሉ',
+    'auditLogs.title': 'የኦዲት መዝገቦች',
+    'auditLogs.description': 'በመድረክ ውስጥ ለውጦችን ይከታተሉ',
     'auditLogs.allEvents': 'ሁሉም ክስተቶች',
     'auditLogs.loading': 'መዝገቦች በመጫን ላይ…',
-    'auditLogs.noLogs': 'የAuditing መዝገቦች አልተገኙም',
+    'auditLogs.noLogs': 'የኦዲት መዝገቦች አልተገኙም',
     'auditLogs.colEvent': 'ክስተት',
     'auditLogs.colUser': 'ተጠቃሚ',
     'auditLogs.colResource': 'ሀብት',
     'auditLogs.colIp': 'IP',
-    'auditLogs.colWhen': 'متى',
+    'auditLogs.colWhen': 'ጊዜ',
 };
 export default auditLogs;

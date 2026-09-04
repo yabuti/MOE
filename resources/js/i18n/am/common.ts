@@ -12,7 +12,7 @@ const common: Record<string, string> = {
     'common.you': 'አንተ/አንቺ',
     'common.active': 'ንቁ',
     'common.inactive': 'ንቅ ያልሆነ',
-    'common.draft': 'Draft',
+    'common.draft': 'ረቂቅ',
     'common.published': 'የታተመ',
     'common.archived': 'የተቀመጠ',
     'common.back': 'ተመለስ',

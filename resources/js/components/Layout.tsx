@@ -21,7 +21,6 @@ import {
     MoonIcon,
     ShieldCheckIcon,
     SunIcon,
-    TagIcon,
     UserCircleIcon,
     UserGroupIcon,
     UsersIcon,

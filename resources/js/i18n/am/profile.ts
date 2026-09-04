@@ -4,6 +4,6 @@ const profile: Record<string, string> = {
     'profile.updatedSuccessfully': 'መገለጫ በተሳካ ሁኔታ ተዘምኗል',
     'profile.firstName': 'የመጀመሪያ ስም',
     'profile.middleName': 'የመካከለኛ ስም',
-    'profile.lastName': 'የየመصار ስም',
+    'profile.lastName': 'የመጨረሻ ስም',
 };
 export default profile;
